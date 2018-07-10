@@ -6,6 +6,7 @@ Created on 10 juil. 2018
 
 import plotly.graph_objs as go
 from builtins import staticmethod
+import statistics
 
 class SensorClass:
     '''
@@ -65,7 +66,7 @@ class SensorClass:
     def toScatter(self):
         xt = []
         yt = []
-        for d,v in self.__values.items():
+        for d,v in sorted(self.__values.items()):
             xt.append(d)
             yt.append(v)
         return go.Scattergl(x=xt, y=yt,name=self.__name)#,mode=self.__mode
@@ -76,5 +77,5 @@ class SensorClass:
             dt = functionToMergeTime(d);
             if(dt not in tvalues) : tvalues[dt]=[]
             tvalues[functionToMergeTime(dt)].append(v)
-        self.__values = {d:sum(v)/len(v) for d,v in tvalues.items()}
+        self.__values = {d:statistics.mean(v) for d,v in tvalues.items()}
     

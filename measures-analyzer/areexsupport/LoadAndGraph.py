@@ -41,14 +41,15 @@ def main(argv=None):
         
         print('Removed V : {}'.format(data))
         
-        data.mergeValueBy(SensorClass.dateTimeToMinute())
-        
-        print('Merged by 1min : {}'.format(data))
-        
         if arg.by5min:
             data.mergeValueBy(SensorClass.dateTimeTo5Minute())
         
             print('Merged by 5min : {}'.format(data))
+            
+        else :
+            data.mergeValueBy(SensorClass.dateTimeToMinute())
+        
+            print('Merged by 1min : {}'.format(data))
         
         if arg.pointrosee or arg.unit=='ALL':
             data.computePointRosee()
@@ -56,18 +57,22 @@ def main(argv=None):
             print('Point de rosee : {}'.format(data))
         
         if arg.unit!='ALL':
-            fig = data.toFigure(arg.unit),
+            fig = data.toFigure(arg.unit)
             
             output = os.path.join(os.path.dirname(arg.input),os.path.basename(arg.input)+".html")
             print ('Writing to {}'.format(output))
             
-            plot(fig,filename=output)
+            plot(fig,filename=output,auto_open=False)
         else :
+            data.computeDistribution()
+            
+            print('Distribution : {}'.format(data))
+            
             for n,d in data.toMultiFigures().items() :
                 
                 output = os.path.join(os.path.dirname(arg.input),os.path.basename(arg.input)+n+".html")
                 print ('Writing to {}'.format(output))
-                plot(d,filename=output)
+                plot(d,filename=output,auto_open=False)
             
 
     except Exception as e:

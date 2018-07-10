@@ -9,6 +9,8 @@ Created on 10 juil. 2018
 from areexsupport.Sensor import SensorClass
 from datetime import datetime
 from pytz import timezone
+import statistics
+
 
 class SensorDataClass:
     '''
@@ -73,8 +75,8 @@ class SensorDataClass:
     def toScatters(self,sensorType):
         return [self.__sensors[v].toScatter() for v in self.sensorsNameByType(sensorType)]
     
-    def toFigure(self,sensorType):
-        return SensorDataClass.__tofigure(self.toScatters(sensorType),sensorType)
+    def toFigure(self,sensorType,title=None):
+        return SensorDataClass.__tofigure(self.toScatters(sensorType),sensorType,title)
         
     @staticmethod
     def __tofigure(data,ylabel,title=None):
@@ -94,6 +96,8 @@ class SensorDataClass:
         result={
             '.temp':self.toFigure('°C'),
             '.rh':self.toFigure('RH%'),
+            '.temp.variance':self.toFigure('pvariance-°C',title='Variance temperature'),
+            '.rh.variance':self.toFigure('pvariance-RH%',title='Variance RH')
             }
         for sn in self.sensorsNameByType('°C'):
             if sn!='Extérieur' and ' - Point de rosée' not in sn:
@@ -104,6 +108,37 @@ class SensorDataClass:
         for sn in self.sensorsNameByType('RH%'):
             result['.rh.'+self.__sensors[sn].pos]=SensorDataClass.__tofigure([self.__sensors[sn].toScatter()],'RH%',title=sn)
         return result
+    
+    def computeDistribution(self):
+        tvalues = {}
+        for sn in self.sensorsNameByType('°C'):
+            if sn!='Extérieur' and ' - Point de rosée' not in sn:
+                for dt,v in self.__sensors[sn].values.items() :
+                    if(dt not in tvalues) : tvalues[dt]=[]
+                    tvalues[dt].append(v)
+        n='Temperature intérieur / distribution'
+        s=SensorClass(n, "pvariance-°C", -1, {d:statistics.pvariance(v) for d,v in tvalues.items()},'markers')
+        self.__sensors[n]=s
+        
+        tvalues = {}
+        for sn in self.sensorsNameByType('°C'):
+            if sn!='Extérieur' and ' - Point de rosée' in sn:
+                for dt,v in self.__sensors[sn].values.items() :
+                    if(dt not in tvalues) : tvalues[dt]=[]
+                    tvalues[dt].append(v)
+        n='Point de rosée intérieur / distribution'
+        s=SensorClass(n, "pvariance-°C", -1, {d:statistics.pvariance(v) for d,v in tvalues.items()},'markers')
+        self.__sensors[n]=s
+        
+        tvalues = {}
+        for sn in self.sensorsNameByType('RH%'):
+            if sn!='Extérieur':
+                for dt,v in self.__sensors[sn].values.items() :
+                    if(dt not in tvalues) : tvalues[dt]=[]
+                    tvalues[dt].append(v)
+        n='RH / distribution'
+        s=SensorClass(n, "pvariance-RH%", -1, {d:statistics.pvariance(v) for d,v in tvalues.items()},'markers')
+        self.__sensors[n]=s
 
     def filterOutSensor(self,filterFunctionToRemove):
         self.__sensors = {n:v for n,v in self.__sensors.items() if not filterFunctionToRemove(v)}
