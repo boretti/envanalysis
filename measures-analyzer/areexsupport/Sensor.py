@@ -68,7 +68,7 @@ class SensorClass:
         for d,v in self.__values.items():
             xt.append(d)
             yt.append(v)
-        return go.Scatter(x=xt, y=yt,name=self.__name)#,mode=self.__mode
+        return go.Scattergl(x=xt, y=yt,name=self.__name)#,mode=self.__mode
     
     def mergeValueBy(self,functionToMergeTime):
         tvalues = {}

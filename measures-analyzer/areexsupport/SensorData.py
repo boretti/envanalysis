@@ -73,10 +73,36 @@ class SensorDataClass:
     def toScatters(self,sensorType):
         return [self.__sensors[v].toScatter() for v in self.sensorsNameByType(sensorType)]
     
-    def toMultiScatters(self):
-        #scatters = {n:v.toScatter() for n,v in self.__sensors.items()}
-        result={'.temp':self.toScatters('°C'),'.rh':self.toScatters('RH%')}
+    def toFigure(self,sensorType):
+        return SensorDataClass.__tofigure(self.toScatters(sensorType),sensorType)
         
+    @staticmethod
+    def __tofigure(data,ylabel,title=None):
+        return dict(
+                data=data,
+                layout=dict(
+                    xaxis=dict(
+                        title='Date'),
+                    yaxis=dict(
+                        title=ylabel),
+                    title=title
+                    )
+                )
+    
+    def toMultiFigures(self):
+        ext = self.__sensors['Extérieur'].toScatter()
+        result={
+            '.temp':self.toFigure('°C'),
+            '.rh':self.toFigure('RH%'),
+            }
+        for sn in self.sensorsNameByType('°C'):
+            if sn!='Extérieur' and ' - Point de rosée' not in sn:
+                result['.temp.'+self.__sensors[sn].pos]=SensorDataClass.__tofigure([ext,self.__sensors[sn].toScatter()],'°C')
+            elif ' - Point de rosée' in sn:
+                n=sn.replace(' - Point de rosée',' - T')
+                result['.temp.'+self.__sensors[n].pos+".2"]=SensorDataClass.__tofigure([ext,self.__sensors[sn].toScatter(),self.__sensors[n].toScatter()],'°C')
+        for sn in self.sensorsNameByType('RH%'):
+            result['.rh.'+self.__sensors[sn].pos]=SensorDataClass.__tofigure([self.__sensors[sn].toScatter()],'RH%',title=sn)
         return result
 
     def filterOutSensor(self,filterFunctionToRemove):

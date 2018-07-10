@@ -56,35 +56,18 @@ def main(argv=None):
             print('Point de rosee : {}'.format(data))
         
         if arg.unit!='ALL':
-            fig = dict(
-                data=data.toScatters(arg.unit),
-                layout=dict(
-                    xaxis=dict(
-                        title='Date'),
-                    yaxis=dict(
-                        title=arg.unit)
-                    )
-                )
+            fig = data.toFigure(arg.unit),
             
             output = os.path.join(os.path.dirname(arg.input),os.path.basename(arg.input)+".html")
             print ('Writing to {}'.format(output))
             
             plot(fig,filename=output)
         else :
-            for n,d in data.toMultiScatters().items() :
-                fig = dict(
-                    data=d,
-                    layout=dict(
-                        xaxis=dict(
-                            title='Date'),
-                        yaxis=dict(
-                            title='°C' if 'temp' in n else 'RH%')
-                        )
-                    )
+            for n,d in data.toMultiFigures().items() :
                 
                 output = os.path.join(os.path.dirname(arg.input),os.path.basename(arg.input)+n+".html")
                 print ('Writing to {}'.format(output))
-                plot(fig,filename=output)
+                plot(d,filename=output)
             
 
     except Exception as e:
