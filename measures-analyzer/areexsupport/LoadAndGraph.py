@@ -8,10 +8,11 @@ import sys
 import os
 
 from argparse import ArgumentParser
+from argparse import ArgumentTypeError
 from areexsupport.Sensor import SensorClass
 from areexsupport.SensorData import SensorDataClass
 from plotly.offline import plot
-
+import shutil
 
 def main(argv=None):
     '''Command line options.'''
@@ -22,14 +23,28 @@ def main(argv=None):
         sys.argv.extend(argv)
         
     program_name = os.path.basename(sys.argv[0])
+    
+    def validateOutput(istring):
+        if os.path.isfile(istring):
+            raise ArgumentTypeError('{} is a file. This should be a folder or not exists'.format(istring))
+        if os.path.islink(istring):
+            raise ArgumentTypeError('{} is a link. This should be a folder or not exists'.format(istring))
+        return istring
         
     try:
         parser = ArgumentParser()
-        parser.add_argument(dest="input", help="paths to file with data")
+        parser.add_argument(dest="input", help="path to file with data")
+        parser.add_argument(dest="output", help="path to the output folder",type=validateOutput)
         parser.add_argument('--5min','-5',dest="by5min", action='store_true',help="aggregate value by 5min")
         parser.add_argument('--unit','-u',dest="unit",action='store',default="°C",choices=["°C","RH%","ALL"],help="choose the unit to be used, default is °C")
         parser.add_argument('--rosee','-r',dest="pointrosee", action='store_true',help="compute point de rosee")
         arg = parser.parse_args()
+        
+        if not os.path.isdir(arg.output) :
+            os.mkdir(arg.output)
+        else :
+            shutil.rmtree(arg.output, ignore_errors=True)
+            os.mkdir(arg.output)
         
         print('Reading from {}'.format(arg.input))
         
@@ -59,7 +74,8 @@ def main(argv=None):
         if arg.unit!='ALL':
             fig = data.toFigure(arg.unit)
             
-            output = os.path.join(os.path.dirname(arg.input),os.path.basename(arg.input)+".html")
+            output = os.path.join(arg.output,os.path.basename(arg.input)+".html")
+            
             print ('Writing to {}'.format(output))
             
             plot(fig,filename=output,auto_open=False)
@@ -70,7 +86,7 @@ def main(argv=None):
             
             for n,d in data.toMultiFigures().items() :
                 
-                output = os.path.join(os.path.dirname(arg.input),os.path.basename(arg.input)+n+".html")
+                output = os.path.join(arg.output,os.path.basename(arg.input)+n+".html")
                 print ('Writing to {}'.format(output))
                 plot(d,filename=output,auto_open=False)
             
