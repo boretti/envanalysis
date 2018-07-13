@@ -117,6 +117,26 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(s.children[0].name,'name - baseline','Validate parent have correct children')
         self.assertEqual(len(s2.parent),1,'Validate child as one parent')
         self.assertEqual(s2.parent[0].name,'name','Validate children have correct parent')
+        
+    def testSub(self):
+        d1 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00','%d.%m.%Y %H:%M:%S'))
+        d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01','%d.%m.%Y %H:%M:%S'))
+        d3 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02','%d.%m.%Y %H:%M:%S'))
+        d4 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01','%d.%m.%Y %H:%M:%S'))
+        s1 = SensorClass('name')
+        s1.add(1.0, d1)
+        s1.add(2.1, d2)
+        s1.add(3.1, d3)
+        s1.add(4.1, d4)
+        s2 = SensorClass('name')
+        s2.add(0.5, d1)
+        s2.add(1, d2)
+        s2.add(5, d3)
+        s3 = s1-s2
+        self.assertAlmostEqual(s3.values[d1], 0.5, msg="First value should be around 1")
+        self.assertAlmostEqual(s3.values[d2], 1.1, msg="Second value should be around 2.1")
+        self.assertAlmostEqual(s3.values[d3], -1.9, msg="Third value should be around 3.1")
+        
 
 if __name__ == "__main__":
     unittest.main()

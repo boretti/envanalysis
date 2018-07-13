@@ -138,6 +138,20 @@ class SensorClass:
         self.__children.append(s)
         return s
     
+    def __sub__(self,other):
+        if not isinstance(other, SensorClass):
+            raise ValueError('other must be a SensorClass')
+         
+        logger.debug('Generate a new sensor for %s (minus) %s',self,other)
+        values={}
+        for d,v in self.__values.items():
+            if d in other.__values :
+                values[d]=v-other.__values[d]
+        s = SensorClass(self.__name+' (minus) '+other.__name,unit=self.__unit,pos='_'+str(self.__pos),val=values,mode=self.__mode,clazz=self.__clazz+'->Minus',parent=[self,other],groupe=self.__groupe)
+        self.__children.append(s)
+        other.__children.append(s)
+        return s
+    
     def mergeValueBy(self,functionToMergeTime):
         logger.debug('Merge value for %s',self)
         tvalues = {}

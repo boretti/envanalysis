@@ -215,7 +215,7 @@ class SensorDataClass:
             return SensorClass.sensorIsClazz('Sensor->Baseline')(s)
         
         # Generate one file per sensor
-        result = {'details':{name:self.oneToFigure(value,value.name) for name,value in self.__sensors.items()},'/':{},'compare':{}}
+        result = {'details':{name:self.oneToFigure(value,value.name) for name,value in self.__sensors.items()},'/':{},'compare':{},'analyse':{}}
         
         # Generate a file with all input temp
         result['/']['Toutes les températures']=self.toFigure(SensorClass.sensorIsUnitAndClazz('°C','Sensor'), '°C', 'Toutes les températures')
@@ -250,6 +250,14 @@ class SensorDataClass:
         internalrhm = self.__sensors['Intérieur - Sensor [RH%] / Mean'].asScatter(name='Intérieur - Humidité',yaxis='y2')
         internalrhb = self.__sensors['Intérieur - Sensor [RH%] / Mean - baseline'].asScatter(name='Intérieur - Humidité / Baseline',yaxis='y2')
         result['/']['Comparaison intérieur vs extérieur - avec baseline et humidité']=self.toFigureFromScatters([internalcm,internalcmb,internalrhm,internalrhb,external,external_b], '°C', 'Intérieur vs Extérieur','RH%')
+        
+        # Analyse de détail atelier sous fenêtre
+        
+        sous = self.__sensors['Atelier Sous-fenêtre - T'].asScatter(name='Atelier Sous-fenêtre')
+        sousb = self.__sensors['Atelier Sous-fenêtre - T - baseline'].asScatter(name='Atelier Sous-fenêtre - baseline')
+        diff_ext = (self.__sensors['Atelier Sous-fenêtre - T']-self.__sensors['Extérieur']).asScatter(name='Différence extérieur-atelier sous fenêtre')
+        diff_extb = (self.__sensors['Atelier Sous-fenêtre - T - baseline']-self.__sensors['Extérieur - baseline']).asScatter(name='Différence extérieur-atelier sous fenêtre - baseline')
+        result['analyse']['Comparaison Atelier sous-fenêtre vs extérieur']=self.toFigureFromScatters([external,external_b,sous,sousb,diff_ext,diff_extb], '°C', 'Atelier sous fenêtre vs Extérieur')
         
         #TODO
         
