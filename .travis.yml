@@ -5,4 +5,4 @@ install:
   - pip install -r requirements.txt
   - pip install pytest-cov
 script:
-  - pytest --cov=areexsupport tests/
+  - python -m pytest --cov=areexsupport tests/
