@@ -18,20 +18,48 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(s.pos, 1, 'Validate pos is OK')
         self.assertEqual(len(s.values), 0, 'Validate value is OK')
         self.assertEqual(s.mode, 'lines', 'Validate mode is OK')
-        
+        self.assertEqual(s.clazz, 'Sensor', 'Validate clazz is OK')
+        self.assertEqual(s.parent, [], 'Validate parent is OK')
+        self.assertEqual(s.children, [], 'Validate children is OK')
+        self.assertEqual(s.groupe, None, 'Validate group is OK')
+          
     def testSensorInitExplicit(self):
-        s = SensorClass('name','RH%',2,{'x':'y'},'y')
+        s1 = SensorClass('name1')
+        s = SensorClass('name','RH%',2,{'x':'y'},'y','c',[s1],'g')
         self.assertEqual(s.name, 'name', 'Validate name is OK')
         self.assertEqual(s.unit, 'RH%', 'Validate unit is OK')
         self.assertEqual(s.pos, 2, 'Validate pos is OK')
         self.assertEqual(s.values, {'x':'y'}, 'Validate value is OK')
         self.assertEqual(s.mode, 'y', 'Validate mode is OK')
+        self.assertEqual(s.clazz, 'c', 'Validate clazz is OK')
+        self.assertEqual(len(s.parent), 1, 'Validate parent is OK')
+        self.assertEqual(s.parent[0].name, 'name1', 'Validate parent is OK')
+        self.assertEqual(s.children, [], 'Validate children is OK')
+        self.assertEqual(s.groupe, 'g', 'Validate group is OK')
+        
+    def testSensorIsGroup(self):
+        s1 = SensorClass('name','RH%',2)
+        s2 = SensorClass('name','V',2,groupe='g')
+        self.assertFalse(SensorClass.sensorIsGroup('g')(s1), "Validate that s1 is not g")
+        self.assertTrue(SensorClass.sensorIsGroup('g')(s2), "Validate that s2 is not g")
 
     def testSensorSensorIsUnit(self):
         s1 = SensorClass('name','RH%',2)
         s2 = SensorClass('name','V',2)
         self.assertFalse(SensorClass.sensorIsUnit('V')(s1), "Validate that s1 is not V")
         self.assertTrue(SensorClass.sensorIsUnit('V')(s2), "Validate that s2 is not V")
+        
+    def testSensorSensorIsClazz(self):
+        s1 = SensorClass('name','RH%',2,clazz='s')
+        s2 = SensorClass('name','V',2,clazz='t')
+        self.assertFalse(SensorClass.sensorIsClazz('t')(s1), "Validate that s1 is not V")
+        self.assertTrue(SensorClass.sensorIsClazz('t')(s2), "Validate that s2 is not V")
+        
+    def testSensorIsUnitAndClazz(self):
+        s1 = SensorClass('name','RH%',2)
+        s2 = SensorClass('name','V',2)
+        self.assertFalse(SensorClass.sensorIsUnitAndClazz('V','Sensor')(s1), "Validate that s1 is not V")
+        self.assertTrue(SensorClass.sensorIsUnitAndClazz('V','Sensor')(s2), "Validate that s2 is not V")
         
     def testSensorDateTimeToMinute(self):
         m = SensorClass.dateTimeToMinute();
@@ -69,6 +97,26 @@ class SensorTest(unittest.TestCase):
         s.add(2.5, d4)
         s.mergeValueBy(m)
         self.assertDictEqual(s.values, {d1:1.8,d5:2.5}, "Validate the merge result")
+        
+    def testToBaseLine(self):
+        d1 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00','%d.%m.%Y %H:%M:%S'))
+        d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01','%d.%m.%Y %H:%M:%S'))
+        d3 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02','%d.%m.%Y %H:%M:%S'))
+        d4 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01','%d.%m.%Y %H:%M:%S'))
+        s = SensorClass('name')
+        s.add(1.0, d1)
+        s.add(2.1, d2)
+        s.add(3.1, d3)
+        s.add(4.1, d4)
+        s2 = s.toBaseLine()
+        self.assertAlmostEqual(s2.values[d1], 1, msg="First value should be around 1")
+        self.assertAlmostEqual(s2.values[d2], 2.1, msg="Second value should be around 2.1")
+        self.assertAlmostEqual(s2.values[d3], 3.1, msg="Third value should be around 3.1")
+        self.assertAlmostEqual(s2.values[d4], 4.1, msg="Fourth value should be around 4.1")
+        self.assertEqual(len(s.children),1,'Validate parent as one child')
+        self.assertEqual(s.children[0].name,'name - baseline','Validate parent have correct children')
+        self.assertEqual(len(s2.parent),1,'Validate child as one parent')
+        self.assertEqual(s2.parent[0].name,'name','Validate children have correct parent')
 
 if __name__ == "__main__":
     unittest.main()
