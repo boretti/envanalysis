@@ -19,7 +19,7 @@ class SensorDataClass:
     '''
     This is a list of data sensor
     '''
-    
+
     @staticmethod
     def __fastparsedate(instr):
         #'01.01.2017 00:00:00'

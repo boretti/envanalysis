@@ -20,7 +20,7 @@ class SensorClass:
     @staticmethod
     def sensorIsGroup(groupe):
         return lambda v : v.groupe==groupe
-    
+
     @staticmethod
     def sensorIsUnit(unit):
         return lambda v : v.unit==unit

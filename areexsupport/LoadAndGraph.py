@@ -30,7 +30,7 @@ def main(argv=None):
         if os.path.islink(istring):
             raise ArgumentTypeError('{} is a link. This should be a folder or not exists'.format(istring))
         return istring
-    
+
     def validateInput(istring):
         if not os.path.isfile(istring):
             raise ArgumentTypeError('{} is not a file'.format(istring))
