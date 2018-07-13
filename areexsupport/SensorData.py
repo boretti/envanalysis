@@ -82,16 +82,13 @@ class SensorDataClass:
         for v in self.__sensors.values():
             logger.info("Post processing data : merging by %s for %s",functionToMergeTime,v.name)
             v.mergeValueBy(functionToMergeTime)
-            
-    def __valueForPointRosee(self,rh,t):
-        return {d:t.values[d]-(100-v)/5 for d,v in rh.values.items() if d in t.values}
 
     def __computePointRosee(self):
         for rh in self.sensorsByUnitAndClazzAndGroup("RH%",'Sensor','Intérieur'):
             snt = rh.name.replace(' - RH',' - T')
             if snt in self.__sensors :
                 t = self.__sensors[snt]
-                pt=self.__valueForPointRosee(rh,t)
+                pt={d:t.values[d]-(100-v)/5 for d,v in rh.values.items() if d in t.values}
                 n=rh.name.replace(' - RH',' - Point de rosée')
                 s=SensorClass(n, "°C", -1, pt,'markers','Point de rosée',parent=[rh,t],groupe='Intérieur')
                 rh.addChildren(s)
@@ -151,16 +148,18 @@ class SensorDataClass:
         return self.sensorsByFunction(finder)
 
     def toFigure(self,acceptFunctionOnSensor,ytitle,title=None,y2label=None):
-        return SensorDataClass.__tofigure([x.asScatter() for x in self.sensorsByFunction(acceptFunctionOnSensor)],ytitle,title,y2label)
+        return SensorDataClass.__tofigureObject([x.asScatter() for x in self.sensorsByFunction(acceptFunctionOnSensor)],ytitle,title,y2label)
     
-    def oneToFigure(self,sensor,title=None):
-        return SensorDataClass.__tofigure([sensor.asScatter()],sensor.unit,title)
+    @staticmethod
+    def __oneToFigure(sensor,title=None):
+        return SensorDataClass.__tofigureObject([sensor.asScatter()],sensor.unit,title)
     
-    def toFigureFromScatters(self,scatters,ytitle,title=None,y2label=None):
-        return SensorDataClass.__tofigure(scatters,ytitle,title,y2label)
+    @staticmethod
+    def __toFigureFromScatters(scatters,ytitle,title=None,y2label=None):
+        return SensorDataClass.__tofigureObject(scatters,ytitle,title,y2label)
         
     @staticmethod
-    def __tofigure(data,ylabel,title=None,y2label=None):
+    def __tofigureObject(data,ylabel,title=None,y2label=None):
         y2axis = None if y2label==None else dict(title=y2label,overlaying='y',side='right')
         return dict(
                 data=data,
@@ -200,7 +199,7 @@ class SensorDataClass:
             return SensorClass.sensorIsClazz('Sensor->Baseline')(s)
         
         # Generate one file per sensor
-        result = {'details':{name:self.oneToFigure(value,value.name) for name,value in self.__sensors.items()},'/':{},'compare':{},'analyse':{}}
+        result = {'details':{name:SensorDataClass.__oneToFigure(value,value.name) for name,value in self.__sensors.items()},'/':{},'compare':{},'analyse':{}}
         
         # Generate a file with all input temp
         result['/']['Toutes les températures']=self.toFigure(SensorClass.sensorIsUnitAndClazz('°C','Sensor'), '°C', 'Toutes les températures')
@@ -224,17 +223,17 @@ class SensorDataClass:
         # Interieur vs Exterieur
         external = self.__sensors['Extérieur'].asScatter()
         internal = self.__sensors['Intérieur - Sensor [°C] / Mean'].asScatter(name='Intérieur',minSensor=self.__sensors['Intérieur - Sensor [°C] / Min'],maxSensor=self.__sensors['Intérieur - Sensor [°C] / Max'])
-        result['/']['Comparaison intérieur vs extérieur']=self.toFigureFromScatters([external,internal], '°C', 'Intérieur vs Extérieur')
+        result['/']['Comparaison intérieur vs extérieur']=SensorDataClass.__toFigureFromScatters([external,internal], '°C', 'Intérieur vs Extérieur')
         
         external_b = self.__sensors['Extérieur - baseline'].asScatter()
         internal_b = self.__sensors['Intérieur - Sensor [°C] / Mean - baseline'].asScatter(name='Intérieur / Baseline')
-        result['/']['Comparaison intérieur vs extérieur - avec baseline']=self.toFigureFromScatters([external,internal,external_b,internal_b], '°C', 'Intérieur vs Extérieur')
+        result['/']['Comparaison intérieur vs extérieur - avec baseline']=SensorDataClass.__toFigureFromScatters([external,internal,external_b,internal_b], '°C', 'Intérieur vs Extérieur')
         
         internalcm = self.__sensors['Intérieur - Sensor [°C] / Mean'].asScatter(name='Intérieur - Température')
         internalcmb = self.__sensors['Intérieur - Sensor [°C] / Mean - baseline'].asScatter(name='Intérieur - Température / Baseline')
         internalrhm = self.__sensors['Intérieur - Sensor [RH%] / Mean'].asScatter(name='Intérieur - Humidité',yaxis='y2')
         internalrhb = self.__sensors['Intérieur - Sensor [RH%] / Mean - baseline'].asScatter(name='Intérieur - Humidité / Baseline',yaxis='y2')
-        result['/']['Comparaison intérieur vs extérieur - avec baseline et humidité']=self.toFigureFromScatters([internalcm,internalcmb,internalrhm,internalrhb,external,external_b], '°C', 'Intérieur vs Extérieur','RH%')
+        result['/']['Comparaison intérieur vs extérieur - avec baseline et humidité']=SensorDataClass.__toFigureFromScatters([internalcm,internalcmb,internalrhm,internalrhb,external,external_b], '°C', 'Intérieur vs Extérieur','RH%')
         
         # Analyse de détail atelier sous fenêtre
         
@@ -242,7 +241,7 @@ class SensorDataClass:
         sousb = self.__sensors['Atelier Sous-fenêtre - T - baseline'].asScatter(name='Atelier Sous-fenêtre - baseline')
         diff_ext = (self.__sensors['Atelier Sous-fenêtre - T']-self.__sensors['Extérieur']).asScatter(name='Différence extérieur-atelier sous fenêtre')
         diff_extb = (self.__sensors['Atelier Sous-fenêtre - T - baseline']-self.__sensors['Extérieur - baseline']).asScatter(name='Différence extérieur-atelier sous fenêtre - baseline')
-        result['analyse']['Comparaison Atelier sous-fenêtre vs extérieur']=self.toFigureFromScatters([external,external_b,sous,sousb,diff_ext,diff_extb], '°C', 'Atelier sous fenêtre vs Extérieur')
+        result['analyse']['Comparaison Atelier sous-fenêtre vs extérieur']=SensorDataClass.__toFigureFromScatters([external,external_b,sous,sousb,diff_ext,diff_extb], '°C', 'Atelier sous fenêtre vs Extérieur')
         
         #TODO
         

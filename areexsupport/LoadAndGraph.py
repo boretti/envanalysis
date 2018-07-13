@@ -18,12 +18,12 @@ import pickle
 
 def main(argv=None):
     logging.basicConfig(level=logging.INFO)
-    
+
     if argv is None:
         argv = sys.argv
     else:
         sys.argv.extend(argv)
-            
+
     def validateOutput(istring):
         if os.path.isfile(istring):
             raise ArgumentTypeError('{} is a file. This should be a folder or not exists'.format(istring))

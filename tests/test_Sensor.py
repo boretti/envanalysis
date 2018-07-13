@@ -83,7 +83,7 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(len(s.children), 0, 'Must be empty')
         s.addChildren(sr)
         self.assertEqual(len(s.children), 1, 'Must be 0')
-        self.assertTrue(sr in s.children, "Must contains the sr key")      
+        self.assertTrue(sr in s.children, "Must contains the sr key")
         
     def testSensorDateTimeTo5Minute(self):
         m = SensorClass.dateTimeTo5Minute();
@@ -153,9 +153,7 @@ class SensorTest(unittest.TestCase):
         self.assertAlmostEqual(s3.values[d1], 0.5, msg="First value should be around 1")
         self.assertAlmostEqual(s3.values[d2], 1.1, msg="Second value should be around 2.1")
         self.assertAlmostEqual(s3.values[d3], -1.9, msg="Third value should be around 3.1")
-        def failtest():
-            r=s1-2
-        self.assertRaises(ValueError,failtest)
+        self.assertRaises(ValueError,lambda f:f-2,s1)
         
     def testIter(self):
         d1 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00','%d.%m.%Y %H:%M:%S'))

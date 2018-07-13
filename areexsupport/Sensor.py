@@ -16,7 +16,7 @@ class SensorClass:
     '''
     This is a class to support a sensor and the associated value
     '''
-    
+
     @staticmethod
     def sensorIsGroup(groupe):
         return lambda v : v.groupe==groupe
