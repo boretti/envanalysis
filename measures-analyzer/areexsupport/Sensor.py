@@ -81,6 +81,9 @@ class SensorClass:
     @property
     def groupe(self):
         return self.__groupe
+    
+    def __iter__(self):
+        return iter(self.__values.keys())
 
     def __init__(self,name,unit='V',pos=1,val=None,mode='lines',clazz='Sensor',parent=None,groupe=None):
         self.__unit=unit
@@ -106,7 +109,7 @@ class SensorClass:
         self.__children.append(c)
     
     def __repr__(self):
-        return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tmode:{}\tclazz:{}\tparent:{}\tchildren:{}\tgroup:{}'.format(self.__name,self.__unit,self.__pos,len(self.__values),self.__mode,self.__clazz,[x.name for x in self.__parent],[x.name for x in self.__children],self.__groupe)
+        return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tmode:{}\tclazz:{}\tparent:{}\tchildren:{}\tgroupe:{}'.format(self.__name,self.__unit,self.__pos,len(self.__values),self.__mode,self.__clazz,[x.name for x in self.__parent],[x.name for x in self.__children],self.__groupe)
     
     def asScatter(self,name=None,minSensor=None,maxSensor=None,yaxis='y'):
         xt = []
