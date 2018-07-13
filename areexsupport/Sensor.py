@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class SensorClass:
     '''
-    This is a class to support a sensor and the associated value
+    This is a class to support a sensor and the associated value.
     '''
 
     @staticmethod
