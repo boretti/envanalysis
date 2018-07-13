@@ -76,7 +76,7 @@ class SensorDataClass:
         self.__computeDistribution()
         logger.info("Post processing data : computing baseline")
         self.__computeBaseLine()
-        
+
     def __mergeValueBy(self,functionToMergeTime):
         logger.debug("Merging by using %s",functionToMergeTime)
         for v in self.__sensors.values():
@@ -94,7 +94,7 @@ class SensorDataClass:
                 rh.addChildren(s)
                 t.addChildren(s)
                 self.__sensors[n]=s
-                
+   
     def __computeDistribution(self):
         groups = set(map(lambda v : v.groupe,self.__sensors.values()))
         units = set(map(lambda v : v.unit,self.__sensors.values()))
@@ -117,13 +117,13 @@ class SensorDataClass:
                             s=SensorClass(n, u, -1, {d:method(v) for d,v in tvalues.items()},'markers',c+"->"+name,parent=tsensor,groupe=g)
                             for t in tsensor : t.addChildren(s)
                             self.__sensors[n]=s
-        
+
     def __computeBaseLine(self):
         for sn in list(self.__sensors.values()):
             logger.info("Post processing data : compute baseline for %s",sn.name)
             s = sn.toBaseLine()
             self.__sensors[s.name]=s
-            
+
     def __repr__(self):
         groups = set(map(lambda v : v.groupe,self.__sensors.values()))
         def gtostr(g):
@@ -133,15 +133,15 @@ class SensorDataClass:
                 return '{}:\n\t\t{}'.format(c,'\n\t\t'.join(map(SensorClass.__repr__,[s for s in sensors if s.clazz==c])))
             return '{}:\n\t{}'.format(g,'\n\t'.join(map(ctostr,sorted(clazzs))))
         return 'Sensors :\n{}'.format('\n'.join(map(gtostr,sorted(groups))))
-    
+
     def sensorsByFunction(self,acceptFunction):
         return [value for value in self.__sensors.values() if acceptFunction(value)]
-    
+
     def sensorsByUnitAndClazz(self,unit,clazz):
         def finder(s):
             return s.unit==unit and s.clazz==clazz
         return self.sensorsByFunction(finder)
-    
+
     def sensorsByUnitAndClazzAndGroup(self,unit,clazz,groupe):
         def finder(s):
             return s.unit==unit and s.clazz==clazz and s.groupe==groupe
@@ -149,15 +149,15 @@ class SensorDataClass:
 
     def toFigure(self,acceptFunctionOnSensor,ytitle,title=None,y2label=None):
         return SensorDataClass.__tofigureObject([x.asScatter() for x in self.sensorsByFunction(acceptFunctionOnSensor)],ytitle,title,y2label)
-    
+
     @staticmethod
     def __oneToFigure(sensor,title=None):
         return SensorDataClass.__tofigureObject([sensor.asScatter()],sensor.unit,title)
-    
+
     @staticmethod
     def __toFigureFromScatters(scatters,ytitle,title=None,y2label=None):
         return SensorDataClass.__tofigureObject(scatters,ytitle,title,y2label)
-        
+ 
     @staticmethod
     def __tofigureObject(data,ylabel,title=None,y2label=None):
         y2axis = None if y2label==None else dict(title=y2label,overlaying='y',side='right')
@@ -189,7 +189,7 @@ class SensorDataClass:
                     title=title
                     )
                 )
-    
+
     def toMultiFigures(self):
         def isExterieur(s):
             return s.groupe=='Extérieur'
@@ -249,4 +249,3 @@ class SensorDataClass:
 
     def filterOutSensor(self,filterFunctionToRemove):
         self.__sensors = {n:v for n,v in self.__sensors.items() if not filterFunctionToRemove(v)}
-    

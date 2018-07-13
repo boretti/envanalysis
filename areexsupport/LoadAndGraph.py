@@ -35,13 +35,13 @@ def main(argv=None):
         if not os.path.isfile(istring):
             raise ArgumentTypeError('{} is not a file'.format(istring))
         return istring
-    
+
     parser = ArgumentParser()
     parser.add_argument(dest="input", help="path to file with data",type=validateInput)
     parser.add_argument(dest="output", help="path to the output folder",type=validateOutput)
     parser.add_argument('--5min','-5',dest="by5min", action='store_true',help="aggregate value by 5min")
     arg = parser.parse_args()
-    
+
     if not os.path.isdir(arg.output) :
         os.mkdir(arg.output)
     else :
