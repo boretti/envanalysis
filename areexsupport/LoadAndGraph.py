@@ -18,7 +18,6 @@ import pickle
 
 def main(argv=None):
     logging.basicConfig(level=logging.INFO)
-    '''Command line options.'''
     
     if argv is None:
         argv = sys.argv
@@ -57,7 +56,7 @@ def main(argv=None):
         try:
             data = pickle.load(of)
         finally :
-            of.close() 
+            of.close()
         
     else :
         print('Reading from {}'.format(arg.input))
@@ -68,7 +67,7 @@ def main(argv=None):
         pickle.dump(data,of)
         of.close()
     
-    print('Datas are :\n{}'.format(data))    
+    print('Datas are :\n{}'.format(data))
     
     for n,fd in sorted(data.toMultiFigures().items()) :
         print('Writing to subfolder {}'.format(n))

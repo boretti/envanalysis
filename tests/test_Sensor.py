@@ -154,7 +154,7 @@ class SensorTest(unittest.TestCase):
         self.assertAlmostEqual(s3.values[d2], 1.1, msg="Second value should be around 2.1")
         self.assertAlmostEqual(s3.values[d3], -1.9, msg="Third value should be around 3.1")
         def failtest():
-            s1-2
+            r=s1-2
         self.assertRaises(ValueError,failtest)
         
     def testIter(self):
