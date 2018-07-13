@@ -5,6 +5,10 @@ install:
   - pip install -r requirements.txt
   - pip install pytest-cov
   - pip install codecov
+  - pip install codacy-coverage
 script:
   - python -m pytest --cov=areexsupport tests/
   - codecov
+  - coverage xml
+  - python-codacy-coverage -r coverage.xml
+  
