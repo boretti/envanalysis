@@ -103,7 +103,6 @@ class SensorDataClass:
         units = set(map(lambda v : v.unit,self.__sensors.values()))
         clazzs = set(map(lambda v : v.clazz,self.__sensors.values()))
         for g in groups :
-            if g == 'Extérieur' : continue
             for u in units :
                 for c in clazzs :
                     tsensor = self.sensorsByFunction(lambda this:this.groupe==g and this.unit==u and this.clazz==c)
@@ -114,26 +113,13 @@ class SensorDataClass:
                             for dt,v in sn.values.items() :
                                 if(dt not in tvalues) : tvalues[dt]=[]
                                 tvalues[dt].append(v)
-                        n='{} - {} [{}] / p-Variance'.format(g,c,u)
-                        s=SensorClass(n, u, -1, {d:statistics.pvariance(v) for d,v in tvalues.items()},'markers',c+"->p-Variance",parent=tsensor,groupe=g)
-                        for t in tsensor : t.addChildren(s)
-                        self.__sensors[n]=s
-                        n='{} - {} [{}] / Mean'.format(g,c,u)
-                        s=SensorClass(n, u, -1, {d:statistics.mean(v) for d,v in tvalues.items()},'markers',c+"->mean",parent=tsensor,groupe=g)
-                        for t in tsensor : t.addChildren(s)
-                        self.__sensors[n]=s
-                        n='{} - {} [{}] / Median'.format(g,c,u)
-                        s=SensorClass(n, u, -1, {d:statistics.median(v) for d,v in tvalues.items()},'markers',c+"->median",parent=tsensor,groupe=g)
-                        for t in tsensor : t.addChildren(s)
-                        self.__sensors[n]=s
-                        n='{} - {} [{}] / Min'.format(g,c,u)
-                        s=SensorClass(n, u, -1, {d:min(v) for d,v in tvalues.items()},'markers',c+"->min",parent=tsensor,groupe=g)
-                        for t in tsensor : t.addChildren(s)
-                        self.__sensors[n]=s
-                        n='{} - {} [{}] / Max'.format(g,c,u)
-                        s=SensorClass(n, u, -1, {d:max(v) for d,v in tvalues.items()},'markers',c+"->max",parent=tsensor,groupe=g)
-                        for t in tsensor : t.addChildren(s)
-                        self.__sensors[n]=s
+                        target={'p-Variance':statistics.pvariance,'Mean':statistics.mean,'Median':statistics.median,'Min':min,'Max':max}
+                        for name,method in target.items():
+                            logger.info("Post processing data : compute distribution for  %s > %s > %s > %s",g,u,c,name)
+                            n='{} - {} [{}] / {}'.format(g,c,u,name)
+                            s=SensorClass(n, u, -1, {d:method(v) for d,v in tvalues.items()},'markers',c+"->"+name,parent=tsensor,groupe=g)
+                            for t in tsensor : t.addChildren(s)
+                            self.__sensors[n]=s
         
     def __computeBaseLine(self):
         for sn in list(self.__sensors.values()):
@@ -199,8 +185,7 @@ class SensorDataClass:
                         ),
                         rangeslider=dict(),
                         type='date'),
-                    yaxis=dict(
-                        title=ylabel),
+                    yaxis=dict(title=ylabel),
                     yaxis2=y2axis,
                     title=title
                     )
