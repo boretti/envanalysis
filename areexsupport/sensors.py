@@ -34,16 +34,18 @@ class sensors:
         second = int(instr[17:19])
         return datetime(year, month, day, hour, minute, second)
 
-    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n:'default'):
+    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default'):
         self.__sensors = {}
         sensorByPos = {}
-        dtlimit = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
+        dtlimit = timezone(
+            'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
         dtzone = timezone('Europe/Zurich')
         try:
             s = 0
             f = open(filename, 'r')
             for n, l in enumerate(f, 1):
-                if n % 100000 == 0 : logger.info("Processing line:{}".format(n))
+                if n % 100000 == 0:
+                    logger.info("Processing line:{}".format(n))
                 if s == 0 and l.startswith('Sensors:'):
                     s = 1
                     continue
@@ -55,7 +57,7 @@ class sensors:
                     continue
                 if s == 3 and l.startswith('Time'):
                     s = 4
-                    continue;
+                    continue
                 if s == 2 and l != '\n':
                     ls = l.rstrip('\n').split('\t')
                     n = ls[1]
@@ -65,10 +67,12 @@ class sensors:
                 if s == 4 and l != '\n':
                     ls = l.rstrip('\n').split('\t')
                     dt_obj = dtzone.localize(sensors.__fastparsedate(ls[0]))
-                    if dtlimit > dt_obj: continue
-                    for p, v in enumerate(ls[1:]) :
+                    if dtlimit > dt_obj:
+                        continue
+                    for p, v in enumerate(ls[1:]):
                         if v != '':
-                            self.__sensors[sensorByPos[p + 1].name].add(float(v), dt_obj)
+                            self.__sensors[sensorByPos[p +
+                                                       1].name].add(float(v), dt_obj)
         finally:
             f.close()
         logger.info("Post processing data : merging by %s", mergeFunction)
@@ -83,56 +87,67 @@ class sensors:
     def __mergeValueBy(self, functionToMergeTime):
         logger.debug("Merging by using %s", functionToMergeTime)
         for v in self.__sensors.values():
-            logger.info("Post processing data : merging by %s for %s", functionToMergeTime, v.name)
+            logger.info("Post processing data : merging by %s for %s",
+                        functionToMergeTime, v.name)
             v.mergeValueBy(functionToMergeTime)
 
     def __computePointRosee(self):
         for rh in self.sensorsByUnitAndClazzAndGroup("RH%", 'Sensor', 'Intérieur'):
             snt = rh.name.replace(' - RH', ' - T')
-            if snt in self.__sensors :
+            if snt in self.__sensors:
                 t = self.__sensors[snt]
-                pt = {d:t.values[d] - (100 - v) / 5 for d, v in rh.values.items() if d in t.values}
+                pt = {d: t.values[d] - (100 - v) / 5 for d,
+                      v in rh.values.items() if d in t.values}
                 n = rh.name.replace(' - RH', ' - Point de rosée')
-                s = sensor(n, "°C", -1, pt, 'markers', 'Point de rosée', parent=[rh, t], groupe='Intérieur')
+                s = sensor(n, "°C", -1, pt, 'markers', 'Point de rosée',
+                           parent=[rh, t], groupe='Intérieur')
                 rh.addChildren(s)
                 t.addChildren(s)
                 self.__sensors[n] = s
 
     def __computeDistribution(self):
-        groups = set(map(lambda v : v.groupe, self.__sensors.values()))
-        units = set(map(lambda v : v.unit, self.__sensors.values()))
-        clazzs = set(map(lambda v : v.clazz, self.__sensors.values()))
-        for g in groups :
-            for u in units :
-                for c in clazzs :
-                    tsensor = self.sensorsByFunction(lambda this:this.groupe == g and this.unit == u and this.clazz == c)
-                    if len(tsensor) > 1 :
-                        logger.info("Post processing data : compute distribution for  %s > %s > %s", g, u, c)
+        groups = set(map(lambda v: v.groupe, self.__sensors.values()))
+        units = set(map(lambda v: v.unit, self.__sensors.values()))
+        clazzs = set(map(lambda v: v.clazz, self.__sensors.values()))
+        for g in groups:
+            for u in units:
+                for c in clazzs:
+                    tsensor = self.sensorsByFunction(
+                        lambda this: this.groupe == g and this.unit == u and this.clazz == c)
+                    if len(tsensor) > 1:
+                        logger.info(
+                            "Post processing data : compute distribution for  %s > %s > %s", g, u, c)
                         tvalues = {}
                         for sn in tsensor:
-                            for dt, v in sn.values.items() :
-                                if(dt not in tvalues) : tvalues[dt] = []
+                            for dt, v in sn.values.items():
+                                if(dt not in tvalues):
+                                    tvalues[dt] = []
                                 tvalues[dt].append(v)
-                        target = {'p-Variance':statistics.pvariance, 'Mean':statistics.mean, 'Median':statistics.median, 'Min':min, 'Max':max}
+                        target = {'p-Variance': statistics.pvariance, 'Mean': statistics.mean,
+                                  'Median': statistics.median, 'Min': min, 'Max': max}
                         for name, method in target.items():
-                            logger.info("Post processing data : compute distribution for  %s > %s > %s > %s", g, u, c, name)
+                            logger.info(
+                                "Post processing data : compute distribution for  %s > %s > %s > %s", g, u, c, name)
                             n = '{} - {} [{}] / {}'.format(g, c, u, name)
-                            s = sensor(n, u, -1, {d:method(v) for d, v in tvalues.items()}, 'markers', c + "->" + name, parent=tsensor, groupe=g)
-                            for t in tsensor : t.addChildren(s)
+                            s = sensor(n, u, -1, {d: method(v) for d, v in tvalues.items(
+                            )}, 'markers', c + "->" + name, parent=tsensor, groupe=g)
+                            for t in tsensor:
+                                t.addChildren(s)
                             self.__sensors[n] = s
 
     def __computeBaseLine(self):
         for sn in list(self.__sensors.values()):
-            logger.info("Post processing data : compute baseline for %s", sn.name)
+            logger.info(
+                "Post processing data : compute baseline for %s", sn.name)
             s = sn.toBaseLine()
             self.__sensors[s.name] = s
 
     def __repr__(self):
-        groups = set(map(lambda v : v.groupe, self.__sensors.values()))
+        groups = set(map(lambda v: v.groupe, self.__sensors.values()))
 
         def gtostr(g):
             sensors = self.sensorsByFunction(sensor.sensorIsGroup(g))
-            clazzs = set(map(lambda v : v.clazz, sensors))
+            clazzs = set(map(lambda v: v.clazz, sensors))
 
             def ctostr(c):
                 return '{}:\n\t\t{}'.format(c, '\n\t\t'.join(map(sensor.__repr__, [s for s in sensors if s.clazz == c])))
@@ -171,35 +186,47 @@ class sensors:
 
     @staticmethod
     def __tofigureObject(data, ylabel, title=None, y2label=None):
-        y2axis = None if y2label == None else dict(title=y2label, overlaying='y', side='right')
+        y2axis = None if y2label == None else dict(
+            title=y2label, overlaying='y', side='right')
         return dict(
-                data=data,
-                layout=dict(
-                    xaxis=dict(
-                        title='Date',
-                        rangeselector=dict(
-                            buttons=list([
-                                dict(count=1, label='1h', step='hour', stepmode='backward'),
-                                dict(count=12, label='12h', step='hour', stepmode='backward'),
-                                dict(count=1, label='1d', step='day', stepmode='backward'),
-                                dict(count=2, label='2d', step='day', stepmode='backward'),
-                                dict(count=7, label='1w', step='day', stepmode='backward'),
-                                dict(count=14, label='2w', step='day', stepmode='backward'),
-                                dict(count=1, label='1m', step='month', stepmode='backward'),
-                                dict(count=2, label='2m', step='month', stepmode='backward'),
-                                dict(count=6, label='6m', step='month', stepmode='backward'),
-                                dict(count=1, label='YTD', step='year', stepmode='todate'),
-                                dict(count=1, label='1y', step='year', stepmode='backward'),
-                                dict(step='all')
-                            ])
-                        ),
-                        rangeslider=dict(),
-                        type='date'),
-                    yaxis=dict(title=ylabel),
-                    yaxis2=y2axis,
-                    title=title
-                    )
-                )
+            data=data,
+            layout=dict(
+                xaxis=dict(
+                    title='Date',
+                    rangeselector=dict(
+                        buttons=list([
+                            dict(count=1, label='1h', step='hour',
+                                     stepmode='backward'),
+                            dict(count=12, label='12h',
+                                 step='hour', stepmode='backward'),
+                            dict(count=1, label='1d', step='day',
+                                 stepmode='backward'),
+                            dict(count=2, label='2d', step='day',
+                                 stepmode='backward'),
+                            dict(count=7, label='1w', step='day',
+                                 stepmode='backward'),
+                            dict(count=14, label='2w',
+                                 step='day', stepmode='backward'),
+                            dict(count=1, label='1m', step='month',
+                                 stepmode='backward'),
+                            dict(count=2, label='2m', step='month',
+                                 stepmode='backward'),
+                            dict(count=6, label='6m', step='month',
+                                 stepmode='backward'),
+                            dict(count=1, label='YTD',
+                                 step='year', stepmode='todate'),
+                            dict(count=1, label='1y', step='year',
+                                 stepmode='backward'),
+                            dict(step='all')
+                        ])
+                    ),
+                    rangeslider=dict(),
+                    type='date'),
+                yaxis=dict(title=ylabel),
+                yaxis2=y2axis,
+                title=title
+            )
+        )
 
     def toMultiFigures(self):
 
@@ -213,53 +240,76 @@ class sensors:
             return sensor.sensorIsClazz('Sensor->Baseline')(s)
 
         # Generate one file per sensor
-        result = {'details':{name:sensors.__oneToFigure(value, value.name) for name, value in self.__sensors.items()}, '/':{}, 'compare':{}, 'analyse':{}}
+        result = {'details': {name: sensors.__oneToFigure(
+            value, value.name) for name, value in self.__sensors.items()}, '/': {}, 'compare': {}, 'analyse': {}}
 
         # Generate a file with all input temp
-        result['/']['Toutes les températures'] = self.toFigure(sensor.sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures')
+        result['/']['Toutes les températures'] = self.toFigure(
+            sensor.sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures')
         # Generate a file with all input rh
-        result['/']['Toutes les humidités'] = self.toFigure(sensor.sensorIsUnitAndClazz('RH%', 'Sensor'), 'RH%', 'Toutes les humidités')
+        result['/']['Toutes les humidités'] = self.toFigure(
+            sensor.sensorIsUnitAndClazz('RH%', 'Sensor'), 'RH%', 'Toutes les humidités')
         # Generate a file with all baseline temp
-        result['/']['Toutes les températures - Baseline'] = self.toFigure(sensor.sensorIsUnitAndClazz('°C', 'Sensor->Baseline'), '°C', 'Toutes les températures - Baseline')
+        result['/']['Toutes les températures - Baseline'] = self.toFigure(sensor.sensorIsUnitAndClazz(
+            '°C', 'Sensor->Baseline'), '°C', 'Toutes les températures - Baseline')
         # Generate a file with all baseline rh
-        result['/']['Toutes les humidités - Baseline'] = self.toFigure(sensor.sensorIsUnitAndClazz('RH%', 'Sensor->Baseline'), 'RH%', 'Toutes les humidités - Baseline')
+        result['/']['Toutes les humidités - Baseline'] = self.toFigure(sensor.sensorIsUnitAndClazz(
+            'RH%', 'Sensor->Baseline'), 'RH%', 'Toutes les humidités - Baseline')
 
         # Generate on file per input sensor and baseline
         for cs in self.sensorsByFunction(isSensor):
-            result['compare'][cs.name + " et Baseline"] = self.toFigure(lambda this:this == cs or (cs in this.parent and isSensorBaseline(this)), cs.unit, cs.name + " et Baseline")
+            result['compare'][cs.name + " et Baseline"] = self.toFigure(lambda this: this == cs or (
+                cs in this.parent and isSensorBaseline(this)), cs.unit, cs.name + " et Baseline")
         # Generate on file per temp sensor vs exterieur
-        for cs in self.sensorsByFunction(lambda this:sensor.sensorIsUnitAndClazz('°C', 'Sensor')(this) and sensor.sensorIsGroup('Intérieur')(this)):
-            result['compare'][cs.name + " vs Extérieur"] = self.toFigure(lambda this:this == cs or (isExterieur(this) and isSensor(this)), cs.unit, cs.name + " vs Extérieur")
+        for cs in self.sensorsByFunction(lambda this: sensor.sensorIsUnitAndClazz('°C', 'Sensor')(this) and sensor.sensorIsGroup('Intérieur')(this)):
+            result['compare'][cs.name + " vs Extérieur"] = self.toFigure(lambda this: this == cs or (
+                isExterieur(this) and isSensor(this)), cs.unit, cs.name + " vs Extérieur")
         # Generate on file per temp sensor vs exterieur (baseline)
-        for cs in self.sensorsByFunction(lambda this:sensor.sensorIsUnitAndClazz('°C', 'Sensor->Baseline')(this) and sensor.sensorIsGroup('Intérieur')(this)):
-            result['compare'][cs.name + " vs Extérieur - Baseline"] = self.toFigure(lambda this:this == cs or (isExterieur(this) and isSensorBaseline(this)), cs.unit, cs.name + " vs Extérieur - Baseline")
+        for cs in self.sensorsByFunction(lambda this: sensor.sensorIsUnitAndClazz('°C', 'Sensor->Baseline')(this) and sensor.sensorIsGroup('Intérieur')(this)):
+            result['compare'][cs.name + " vs Extérieur - Baseline"] = self.toFigure(lambda this: this == cs or (
+                isExterieur(this) and isSensorBaseline(this)), cs.unit, cs.name + " vs Extérieur - Baseline")
 
         # Interieur vs Exterieur
         external = self.__sensors['Extérieur'].asScatter()
-        internal = self.__sensors['Intérieur - Sensor [°C] / Mean'].asScatter(name='Intérieur', minSensor=self.__sensors['Intérieur - Sensor [°C] / Min'], maxSensor=self.__sensors['Intérieur - Sensor [°C] / Max'])
-        result['/']['Comparaison intérieur vs extérieur'] = sensors.__toFigureFromScatters([external, internal], '°C', 'Intérieur vs Extérieur')
+        internal = self.__sensors['Intérieur - Sensor [°C] / Mean'].asScatter(
+            name='Intérieur', minSensor=self.__sensors['Intérieur - Sensor [°C] / Min'], maxSensor=self.__sensors['Intérieur - Sensor [°C] / Max'])
+        result['/']['Comparaison intérieur vs extérieur'] = sensors.__toFigureFromScatters(
+            [external, internal], '°C', 'Intérieur vs Extérieur')
 
         external_b = self.__sensors['Extérieur - baseline'].asScatter()
-        internal_b = self.__sensors['Intérieur - Sensor [°C] / Mean - baseline'].asScatter(name='Intérieur / Baseline')
-        result['/']['Comparaison intérieur vs extérieur - avec baseline'] = sensors.__toFigureFromScatters([external, internal, external_b, internal_b], '°C', 'Intérieur vs Extérieur')
+        internal_b = self.__sensors['Intérieur - Sensor [°C] / Mean - baseline'].asScatter(
+            name='Intérieur / Baseline')
+        result['/']['Comparaison intérieur vs extérieur - avec baseline'] = sensors.__toFigureFromScatters(
+            [external, internal, external_b, internal_b], '°C', 'Intérieur vs Extérieur')
 
-        internalcm = self.__sensors['Intérieur - Sensor [°C] / Mean'].asScatter(name='Intérieur - Température')
-        internalcmb = self.__sensors['Intérieur - Sensor [°C] / Mean - baseline'].asScatter(name='Intérieur - Température / Baseline')
-        internalrhm = self.__sensors['Intérieur - Sensor [RH%] / Mean'].asScatter(name='Intérieur - Humidité', yaxis='y2')
-        internalrhb = self.__sensors['Intérieur - Sensor [RH%] / Mean - baseline'].asScatter(name='Intérieur - Humidité / Baseline', yaxis='y2')
-        result['/']['Comparaison intérieur vs extérieur - avec baseline et humidité'] = sensors.__toFigureFromScatters([internalcm, internalcmb, internalrhm, internalrhb, external, external_b], '°C', 'Intérieur vs Extérieur', 'RH%')
+        internalcm = self.__sensors['Intérieur - Sensor [°C] / Mean'].asScatter(
+            name='Intérieur - Température')
+        internalcmb = self.__sensors['Intérieur - Sensor [°C] / Mean - baseline'].asScatter(
+            name='Intérieur - Température / Baseline')
+        internalrhm = self.__sensors['Intérieur - Sensor [RH%] / Mean'].asScatter(
+            name='Intérieur - Humidité', yaxis='y2')
+        internalrhb = self.__sensors['Intérieur - Sensor [RH%] / Mean - baseline'].asScatter(
+            name='Intérieur - Humidité / Baseline', yaxis='y2')
+        result['/']['Comparaison intérieur vs extérieur - avec baseline et humidité'] = sensors.__toFigureFromScatters(
+            [internalcm, internalcmb, internalrhm, internalrhb, external, external_b], '°C', 'Intérieur vs Extérieur', 'RH%')
 
         # Analyse de détail atelier sous fenêtre
 
-        sous = self.__sensors['Atelier Sous-fenêtre - T'].asScatter(name='Atelier Sous-fenêtre')
-        sousb = self.__sensors['Atelier Sous-fenêtre - T - baseline'].asScatter(name='Atelier Sous-fenêtre - baseline')
-        diff_ext = (self.__sensors['Atelier Sous-fenêtre - T'] - self.__sensors['Extérieur']).asScatter(name='Différence extérieur-atelier sous fenêtre')
-        diff_extb = (self.__sensors['Atelier Sous-fenêtre - T - baseline'] - self.__sensors['Extérieur - baseline']).asScatter(name='Différence extérieur-atelier sous fenêtre - baseline')
-        result['analyse']['Comparaison Atelier sous-fenêtre vs extérieur'] = sensors.__toFigureFromScatters([external, external_b, sous, sousb, diff_ext, diff_extb], '°C', 'Atelier sous fenêtre vs Extérieur')
+        sous = self.__sensors['Atelier Sous-fenêtre - T'].asScatter(
+            name='Atelier Sous-fenêtre')
+        sousb = self.__sensors['Atelier Sous-fenêtre - T - baseline'].asScatter(
+            name='Atelier Sous-fenêtre - baseline')
+        diff_ext = (self.__sensors['Atelier Sous-fenêtre - T'] - self.__sensors['Extérieur']
+                    ).asScatter(name='Différence extérieur-atelier sous fenêtre')
+        diff_extb = (self.__sensors['Atelier Sous-fenêtre - T - baseline'] - self.__sensors['Extérieur - baseline']
+                     ).asScatter(name='Différence extérieur-atelier sous fenêtre - baseline')
+        result['analyse']['Comparaison Atelier sous-fenêtre vs extérieur'] = sensors.__toFigureFromScatters(
+            [external, external_b, sous, sousb, diff_ext, diff_extb], '°C', 'Atelier sous fenêtre vs Extérieur')
 
         # TODO
 
         return result
 
     def filterOutSensor(self, filterFunctionToRemove):
-        self.__sensors = {n:v for n, v in self.__sensors.items() if not filterFunctionToRemove(v)}
+        self.__sensors = {n: v for n, v in self.__sensors.items(
+        ) if not filterFunctionToRemove(v)}

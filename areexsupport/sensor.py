@@ -31,7 +31,7 @@ class sensor:
 
         This method returns a function that strip the second and microsecond of a datetime.
         '''
-        return lambda d : d.replace(second=0, microsecond=0)
+        return lambda d: d.replace(second=0, microsecond=0)
 
     @staticmethod
     def __dateTimeTo5Minute(d):
@@ -49,19 +49,19 @@ class sensor:
 
     @staticmethod
     def sensorIsGroup(groupe):
-        return lambda v : v.groupe == groupe
+        return lambda v: v.groupe == groupe
 
     @staticmethod
     def sensorIsUnit(unit):
-        return lambda v : v.unit == unit
+        return lambda v: v.unit == unit
 
     @staticmethod
     def sensorIsClazz(clazz):
-        return lambda v : v.clazz == clazz
+        return lambda v: v.clazz == clazz
 
     @staticmethod
     def sensorIsUnitAndClazz(unit, clazz):
-        return lambda v : v.clazz == clazz and v.unit == unit
+        return lambda v: v.clazz == clazz and v.unit == unit
 
     @property
     def values(self):
@@ -147,9 +147,9 @@ class sensor:
                 minyt.append(v - minSensor.__values[d])
             if maxSensor != None:
                 maxyt.append(maxSensor.__values[d] - v)
-        if (len(xt) == len(minyt) and len(xt) == len(maxyt)) :
+        if (len(xt) == len(minyt) and len(xt) == len(maxyt)):
             return go.Scattergl(x=xt, y=yt, name=self.__name if name == None else name, error_y=dict(type='data', symmetric=False, array=maxyt, arrayminus=minyt), yaxis=yaxis)
-        else :
+        else:
             return go.Scattergl(x=xt, y=yt, name=self.__name if name == None else name, yaxis=yaxis)
 
     def toBaseLine(self):
@@ -160,8 +160,9 @@ class sensor:
             xt.append(d)
             yt.append(v)
         baseline_values = peakutils.baseline(np.asarray(yt))
-        values = {xt[dt]:v for dt, v in enumerate(baseline_values)}
-        s = sensor(self.__name + ' - baseline', unit=self.__unit, pos='_' + str(self.__pos), val=values, mode='lines', clazz=self.__clazz + '->Baseline', parent=[self], groupe=self.__groupe)
+        values = {xt[dt]: v for dt, v in enumerate(baseline_values)}
+        s = sensor(self.__name + ' - baseline', unit=self.__unit, pos='_' + str(self.__pos), val=values,
+                   mode='lines', clazz=self.__clazz + '->Baseline', parent=[self], groupe=self.__groupe)
         self.__children.append(s)
         return s
 
@@ -172,9 +173,10 @@ class sensor:
         logger.debug('Generate a new sensor for %s (minus) %s', self, other)
         values = {}
         for d, v in self.__values.items():
-            if d in other.__values :
+            if d in other.__values:
                 values[d] = v - other.__values[d]
-        s = sensor(self.__name + ' (minus) ' + other.__name, unit=self.__unit, pos='_' + str(self.__pos), val=values, mode=self.__mode, clazz=self.__clazz + '->Minus', parent=[self, other], groupe=self.__groupe)
+        s = sensor(self.__name + ' (minus) ' + other.__name, unit=self.__unit, pos='_' + str(self.__pos),
+                   val=values, mode=self.__mode, clazz=self.__clazz + '->Minus', parent=[self, other], groupe=self.__groupe)
         self.__children.append(s)
         other.__children.append(s)
         return s
@@ -183,7 +185,8 @@ class sensor:
         logger.debug('Merge value for %s', self)
         tvalues = {}
         for d, v in self.__values.items():
-            dt = functionToMergeTime(d);
-            if(dt not in tvalues) : tvalues[dt] = []
+            dt = functionToMergeTime(d)
+            if(dt not in tvalues):
+                tvalues[dt] = []
             tvalues[functionToMergeTime(dt)].append(v)
-        self.__values = {d:statistics.mean(v) for d, v in tvalues.items()}
+        self.__values = {d: statistics.mean(v) for d, v in tvalues.items()}
