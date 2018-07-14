@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def main(argv=None):
     logging.basicConfig(
-        format='%(asctime)s - %(levelname)s - [%(threadName)s] [%(module)s] [%(filename)s]>[%(funcName)s]@%(lineno)d -  %(message)s', level=logging.INFO)
+        format='%(asctime)s - %(levelname)s - [%(threadName)s] [%(module)s] [%(filename)s]>[%(funcName)s]@%(lineno)d - %(message)s', level=logging.INFO)
 
     if argv is None:
         argv = sys.argv

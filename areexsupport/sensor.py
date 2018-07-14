@@ -9,7 +9,6 @@ This module only exposes one single class : sensor ; Just use `from areexsupport
 '''
 
 import plotly.graph_objs as go
-import statistics
 import peakutils
 import numpy as np
 import logging
@@ -178,13 +177,13 @@ class sensor:
             return self.name > other.name
         return False
 
-    def add(self, v, d):
+    def setValues(self, values):
         '''
-        Add a value to this sensor.
+        Set the values of this sensor.
 
         This method is used by the framework itself.
         '''
-        self.__values[d] = v
+        self.__values = values
 
     def __repr__(self):
         return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tclazz:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__clazz)
@@ -257,21 +256,3 @@ class sensor:
         s = sensor(self.__name + ' (minus) ' + other.__name, unit=self.__unit, pos='_' + str(self.__pos),
                    val=values, clazz=self.__clazz + '->Minus')
         return s
-
-    def mergeValueBy(self, functionToMergeTime):
-        '''
-        Modify this sensor to merge values by a function.
-
-        All date and times are merged by using the functionToMergeTime and the measures are averaged.
-
-        Mandatory parameters :
-        - functionToMergeTime a function that receive the date and time and return the merged date and time
-        '''
-        logger.debug('Merge value for %s', self)
-        tvalues = {}
-        for d, v in self.__values.items():
-            dt = functionToMergeTime(d)
-            if(dt not in tvalues):
-                tvalues[dt] = []
-            tvalues[functionToMergeTime(dt)].append(v)
-        self.__values = {d: statistics.mean(v) for d, v in tvalues.items()}

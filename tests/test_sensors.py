@@ -51,39 +51,6 @@ def simpleinput(tmpdir_factory):
         14.07.2018 00:06:04                25.2
         14.07.2018 00:06:21            23.4    
         14.07.2018 00:06:40        48.2        
-        14.07.2018 00:07:13                25.1
-        14.07.2018 00:07:25            23.3    
-        14.07.2018 00:07:55        48.2        
-        14.07.2018 00:08:17            23.3    
-        14.07.2018 00:08:22                25.1
-        14.07.2018 00:08:35        48.2        
-        14.07.2018 00:09:22            23.3    
-        14.07.2018 00:09:33                25.1
-        14.07.2018 00:10:15        48.2        
-        14.07.2018 00:10:35                25.1
-        14.07.2018 00:11:01            23.3    
-        14.07.2018 00:11:12                25.1
-        14.07.2018 00:11:51        48.2        
-        14.07.2018 00:12:23            23.3    
-        14.07.2018 00:12:27                25.1
-        14.07.2018 00:12:46        48.2        
-        14.07.2018 00:13:29                25.1
-        14.07.2018 00:13:30            23.3    
-        14.07.2018 00:13:59        48.2        
-        14.07.2018 00:14:01                25.1
-        14.07.2018 00:14:40            23.3    
-        14.07.2018 00:15:13                25.1
-        14.07.2018 00:15:36        48.2        
-        14.07.2018 00:16:01                25.0
-        14.07.2018 00:16:24            23.4    
-        14.07.2018 00:17:03                25.0
-        14.07.2018 00:17:12        48.2        
-        14.07.2018 00:17:42                25.0
-        14.07.2018 00:17:44            23.4    
-        14.07.2018 00:18:07        48.2        
-        14.07.2018 00:18:26            23.4    
-        14.07.2018 00:18:33                25.0
-        14.07.2018 00:18:43        48.2        
         14.07.2018 00:19:27     3.2            ''').replace('    ', '\t'))
     finally:
         ffn.close()
@@ -92,7 +59,13 @@ def simpleinput(tmpdir_factory):
 
 def testSensorsInitOnlyMandataParameter(simpleinput):
     d = sensors(simpleinput)
-    print(d)
+    d1 = sensors.fastparsedate('14.07.2018 00:00:00')
+    d2 = sensors.fastparsedate('14.07.2018 00:01:00')
+    d3 = sensors.fastparsedate('14.07.2018 00:02:00')
+    d4 = sensors.fastparsedate('14.07.2018 00:03:00')
+    d5 = sensors.fastparsedate('14.07.2018 00:04:00')
+    d6 = sensors.fastparsedate('14.07.2018 00:05:00')
+    d7 = sensors.fastparsedate('14.07.2018 00:06:00')
     assert 'Extérieur' in d.keys()
     assert 'Maquette Partie Haute - RH' in d.keys()
     assert 'Maquette Partie Haute - T' in d.keys()
@@ -100,3 +73,10 @@ def testSensorsInitOnlyMandataParameter(simpleinput):
     assert len(d.groups) == 1
     assert 'default' in d.groups
     assert len(d) == 18
+    assert len(d['Extérieur'].values) == 6
+    assert d['Extérieur'][d1] == 25.2
+    assert d['Extérieur'][d2] == 25.2
+    assert d['Extérieur'][d3] == 25.2
+    assert d['Extérieur'][d4] == 25.2
+    assert d['Extérieur'][d5] == 25.1
+    assert d['Extérieur'][d7] == 25.2

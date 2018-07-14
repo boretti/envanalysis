@@ -9,8 +9,7 @@ This module only exposes one single class : sensors ; Just use `from areexsuppor
 '''
 
 from areexsupport.sensor import sensor
-from datetime import datetime
-from pytz import timezone
+from datetime import datetime, timezone
 import statistics
 
 import logging
@@ -26,8 +25,6 @@ class sensors:
 
     This object is build from the pseudo csv of an export of the areex sensor.
     '''
-
-    __dtz = timezone('Europe/Zurich')
 
     def __iter__(self):
         '''
@@ -82,7 +79,7 @@ class sensors:
         return self.__groups.keys()
 
     @staticmethod
-    def __fastparsedate(instr):
+    def fastparsedate(instr):
         # '01.01.2017 00:00:00'
         day = int(instr[0:2])
         month = int(instr[3:5])
@@ -90,14 +87,13 @@ class sensors:
         hour = int(instr[11:13])
         minute = int(instr[14:16])
         second = int(instr[17:19])
-        return datetime(year, month, day, hour, minute, second, 0, sensors.__dtz)
+        return datetime(year, month, day, hour, minute, second, 0, timezone.utc)
 
     def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: {'def': {k: v for k, v in n.items()}}, filterOutFunction=None):
         self.__sensors = {}
         self.__groups = {}
         sensorByPos = {}
-        dtlimit = timezone(
-            'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
+        dtlimit = sensors.fastparsedate('01.01.2017 00:00:00')
         try:
             s = 0
             f = open(filename, 'r', buffering=1024 * 1024)
@@ -106,12 +102,16 @@ class sensors:
                     logger.info("Processing line:{}".format(n))
                 if s == 4 and l != '\n':
                     ls = l.rstrip('\n').split('\t')
-                    dt_obj = sensors.__fastparsedate(ls[0])
+                    dt_obj = sensors.fastparsedate(ls[0])
                     if dtlimit > dt_obj:
                         continue
-                    for p, v in filter(lambda pi: pi[1] != '', enumerate(ls[1:], start=1)):
-                        sensorByPos[p].add(
-                            float(v), dt_obj)
+                    dt_obj = mergeFunction(dt_obj)
+                    for p, v in filter(
+                            lambda pi: pi[1] != '', enumerate(ls[1:], start=1)):
+                        if dt_obj not in sensorByPos[p]:
+                            sensorByPos[p][dt_obj] = [float(v)]
+                        else:
+                            sensorByPos[p][dt_obj].append(float(v))
                     continue
                 if s == 0 and l.startswith('Sensors:'):
                     s = 1
@@ -128,8 +128,8 @@ class sensors:
                 if s == 2 and l != '\n':
                     ls = l.rstrip('\n').split('\t')
                     n = ls[1]
-                    cs = sensor(n, ls[2], ls[0])
-                    sensorByPos[int(ls[0])] = cs
+                    cs = sensor(n, ls[2], int(ls[0]))
+                    sensorByPos[int(ls[0])] = {}
                     self.__sensors[cs.name] = cs
 
         finally:
@@ -146,21 +146,19 @@ class sensors:
             self.__groups[gname].append(s)
         logger.info("Create meta sensor by using %s", metaFunction)
         self.__metasensors = metaFunction(self.__sensors)
-        logger.info("Post processing data : merging by %s", mergeFunction)
-        self.__mergeValueBy(mergeFunction)
+        logger.info(
+            "Post processing data : computing average for %s", mergeFunction)
+        for s in self.__sensors.values():
+            logger.info(
+                "Post processing data : computing average for %s", s.name)
+            s.setValues({dt: statistics.mean(v)
+                         for dt, v in sensorByPos[s.pos].items()})
         logger.info("Post processing data : computing point de rosee")
         self.__computePointRosee()
         logger.info("Post processing data : computing distribution")
         self.__computeDistribution()
         logger.info("Post processing data : computing baseline")
         self.__computeBaseLine()
-
-    def __mergeValueBy(self, functionToMergeTime):
-        logger.debug("Merging by using %s", functionToMergeTime)
-        for v in self.__sensors.values():
-            logger.info("Post processing data : merging by %s for %s",
-                        functionToMergeTime, v.name)
-            v.mergeValueBy(functionToMergeTime)
 
     def __computePointRosee(self):
         for msn, ms in list(self.__metasensors.items()):

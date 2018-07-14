@@ -39,12 +39,12 @@ def testSensorDateTimeToMinute():
     assert m(d2) == d1
 
 
-def testAdd():
+def testSetValues():
     d1 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
     s = sensor('name')
     assert len(s.values) == 0
-    s.add(1.0, d1)
+    s.setValues({d1: 1.0})
     assert len(s.values) == 1
     assert d1 in s
     assert s.values[d1] == 1.0
@@ -78,27 +78,6 @@ def testSensorDateTimeTo5Minute():
     assert m(d6) == d4
 
 
-def testMergeValueBy():
-    m = sensor.dateTimeToMinute()
-    d1 = timezone(
-        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
-    d2 = timezone(
-        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
-    d3 = timezone(
-        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
-    d4 = timezone(
-        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-    d5 = timezone(
-        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:00', '%d.%m.%Y %H:%M:%S'))
-    s = sensor('name')
-    s.add(1.2, d1)
-    s.add(1.8, d2)
-    s.add(2.4, d3)
-    s.add(2.5, d4)
-    s.mergeValueBy(m)
-    assert s.values == {d1: 1.8, d5: 2.5}
-
-
 def testToBaseLine():
     d1 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
@@ -108,11 +87,8 @@ def testToBaseLine():
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
     d4 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-    s = sensor('name')
-    s.add(1.0, d1)
-    s.add(2.1, d2)
-    s.add(3.1, d3)
-    s.add(4.1, d4)
+    s = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1})
+
     s2 = s.toBaseLine()
     assert s2.values[d1] == approx(1)
     assert s2.values[d2] == approx(2.1)
@@ -129,15 +105,8 @@ def testSub():
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
     d4 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-    s1 = sensor('name')
-    s1.add(1.0, d1)
-    s1.add(2.1, d2)
-    s1.add(3.1, d3)
-    s1.add(4.1, d4)
-    s2 = sensor('name')
-    s2.add(0.5, d1)
-    s2.add(1, d2)
-    s2.add(5, d3)
+    s1 = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1})
+    s2 = sensor('name', val={d1: 0.5, d2: 1, d3: 5})
     s3 = s1 - s2
     assert s3.values[d1] == approx(0.5)
     assert s3.values[d2] == approx(1.1)
@@ -155,11 +124,7 @@ def testIter():
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
     d4 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-    s = sensor('name')
-    s.add(1.0, d1)
-    s.add(2.1, d2)
-    s.add(3.1, d3)
-    s.add(4.1, d4)
+    s = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1})
     nt = []
     for x in sorted(s):
         nt.append(x)
@@ -175,11 +140,7 @@ def testItem():
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
     d4 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-    s = sensor('name')
-    s.add(1.0, d1)
-    s.add(2.1, d2)
-    s.add(3.1, d3)
-    s.add(4.1, d4)
+    s = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1})
     assert s[d1] == 1.0
 
 
@@ -192,15 +153,7 @@ def testLen():
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
     d4 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-    s = sensor('name')
-    assert len(s) == 0
-    s.add(1.0, d1)
-    assert len(s) == 1
-    s.add(2.1, d2)
-    assert len(s) == 2
-    s.add(3.1, d3)
-    assert len(s) == 3
-    s.add(4.1, d4)
+    s = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1})
     assert len(s) == 4
 
 
@@ -211,18 +164,9 @@ def testAsScatter():
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
     d3 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
-    s1 = sensor('name')
-    s1.add(1.0, d1)
-    s1.add(2.1, d2)
-    s1.add(3.1, d3)
-    s2 = sensor('name')
-    s2.add(0.5, d1)
-    s2.add(1, d2)
-    s2.add(3.1, d3)
-    s3 = sensor('name')
-    s3.add(6, d1)
-    s3.add(8, d2)
-    s3.add(5, d3)
+    s1 = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1})
+    s2 = sensor('name', val={d1: 0.5, d2: 1, d3: 3.1})
+    s3 = sensor('name', val={d1: 6, d2: 8, d3: 5})
     sc1 = s1.asScatter()
     assert list(sc1.x) == [d1, d2, d3]
     assert list(sc1.y) == [1.0, 2.1, 3.1]
