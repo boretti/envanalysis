@@ -68,7 +68,7 @@ class sensor:
         '''
         Values of this sensor (association between date time and value).
 
-        This is all the values of the sensors. 
+        This is all the values of the sensors.
 
         The keys are the datetime object and the values are the measures (or computed) numerical value at this time.
         '''
