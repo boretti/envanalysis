@@ -92,9 +92,11 @@ def simpleinput(tmpdir_factory):
 
 def testSensorsInitOnlyMandataParameter(simpleinput):
     d = sensors(simpleinput)
+    print(d)
     assert 'Extérieur' in d.keys()
     assert 'Maquette Partie Haute - RH' in d.keys()
     assert 'Maquette Partie Haute - T' in d.keys()
     assert 'Maquette Partie Haute - V' in d.keys()
     assert len(d.groups) == 1
     assert 'default' in d.groups
+    assert len(d) == 18

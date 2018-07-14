@@ -15,10 +15,14 @@ from plotly.offline import plot
 import shutil
 import logging
 import pickle
+from concurrent.futures.thread import ThreadPoolExecutor
+
+logger = logging.getLogger(__name__)
 
 
 def main(argv=None):
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        format='%(asctime)s - %(levelname)s - [%(threadName)s] [%(module)s] [%(filename)s]>[%(funcName)s]@%(lineno)d -  %(message)s', level=logging.INFO)
 
     if argv is None:
         argv = sys.argv
@@ -44,6 +48,8 @@ def main(argv=None):
         dest="input", help="path to file with data", type=validateInput)
     parser.add_argument(
         dest="output", help="path to the output folder", type=validateOutput)
+    parser.add_argument('--remove-cache', '-rc', dest="removecache",
+                        action='store_true', help="Force remove cache before run")
     parser.add_argument('--5min', '-5', dest="by5min",
                         action='store_true', help="aggregate value by 5min")
     parser.add_argument('--verbose', '-v', dest="verbose",
@@ -56,6 +62,8 @@ def main(argv=None):
                         action='store_true', help="generate global chart (-v also generate -g)")
     parser.add_argument('--ext-vs-int', dest="extvsint",
                         action='store_true', help="generate external vs internal (-v also generate -ext-vs-int)")
+    parser.add_argument("--threadcount", "-tc", dest="tc", type=int, default=4,
+                        help="specify thread number")
     arg = parser.parse_args()
 
     if not os.path.isdir(arg.output):
@@ -66,8 +74,11 @@ def main(argv=None):
         os.mkdir(arg.output)
 
     cachename = arg.input + ".cache"
+    if arg.removecache and os.path.isfile(cachename):
+        logger.info('Forced remove of the cache')
+        os.remove(cachename)
     if os.path.isfile(cachename) and os.path.getmtime(cachename) > os.path.getmtime(arg.input):
-        print('Valid data cache found ; Will be used')
+        logger.info('Valid data cache found ; Will be used')
         of = open(cachename, "rb")
         try:
             data = pickle.load(of)
@@ -97,41 +108,39 @@ def main(argv=None):
                     meta[target] = {}
                 meta[target][n] = s
             return meta
-        print('Reading from {}'.format(arg.input))
+        logger.info('Reading from {}'.format(arg.input))
         data = sensors(arg.input, mergeFunction, groupFunction,
                        metaFunction, filteroutFunction)
-        print('Storing to cache {}'.format(cachename))
+        logger.info('Storing to cache {}'.format(cachename))
         of = open(cachename, "wb")
         pickle.dump(data, of)
         of.close()
 
-    print('Datas are :\n{}'.format(data))
+    logger.info('Datas are :\n{}'.format(data))
 
     def logAndPlot(output, figure):
-        print('Writing to {}'.format(output))
+        logger.info('Writing to {}'.format(output))
         plot(figure, filename=output, auto_open=False)
+
+    plotters = []
 
     if arg.verbose or arg.globalc:
         def sensorIsUnitAndClazz(unit, clazz):
             return lambda v: v.clazz == clazz and v.unit == unit
 
-        # All temp
-        logAndPlot(os.path.join(arg.output, 'Toutes les températures.html'), data.toFigure(
-            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures'))
+        plotters.append(lambda: logAndPlot(os.path.join(arg.output, 'Toutes les températures.html'), data.toFigure(
+            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures')))
 
-        # All rh
-        logAndPlot(os.path.join(arg.output, 'Toutes les humidités.html'), data.toFigure(
-            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités'))
+        plotters.append(lambda: logAndPlot(os.path.join(arg.output, 'Toutes les humidités.html'), data.toFigure(
+            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités')))
 
-        # All temp
-        logAndPlot(os.path.join(
+        plotters.append(lambda: logAndPlot(os.path.join(
             arg.output, 'Toutes les températures - Baseline.html'), data.toFigure(
-            sensorIsUnitAndClazz('°C', 'Sensor->Baseline'), '°C', 'Toutes les températures - Baseline'))
+            sensorIsUnitAndClazz('°C', 'Sensor->Baseline'), '°C', 'Toutes les températures - Baseline')))
 
-        # All rh
-        logAndPlot(os.path.join(
+        plotters.append(lambda: logAndPlot(os.path.join(
             arg.output, 'Toutes les humidité - Baselines.html'), data.toFigure(
-            sensorIsUnitAndClazz('RH%', 'Sensor->Baseline'), '°C', 'Toutes les humidités - Baseline'))
+            sensorIsUnitAndClazz('RH%', 'Sensor->Baseline'), '°C', 'Toutes les humidités - Baseline')))
 
     if arg.verbose or arg.extvsint:
         # Interieur vs exterieur
@@ -145,15 +154,18 @@ def main(argv=None):
             name='Température intérieur / Baseline')
         internalrh_b = data['Intérieur - Sensor [RH%] / Mean - baseline'].asScatter(
             name='Humidité intérieur / Baseline')
-        logAndPlot(os.path.join(
-            arg.output, 'Comparaison intérieur vs extérieur.html'), sensors.scattersToFigure(
-            [external, internalt, internalrh], '°C', 'Intérieur vs Extérieur', 'RH%'))
-        logAndPlot(os.path.join(
-            arg.output, 'Comparaison intérieur vs extérieur - Baselines.html'), sensors.scattersToFigure(
-            [external, internalt, internalrh, external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - avec baselines', 'RH%'))
-        logAndPlot(os.path.join(
-            arg.output, 'Comparaison intérieur vs extérieur - Uniquement baselines.html'), sensors.scattersToFigure(
-            [external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - uniquement baselines', 'RH%'))
+
+        def extvsint():
+            logAndPlot(os.path.join(
+                arg.output, 'Comparaison intérieur vs extérieur.html'), sensors.scattersToFigure(
+                [external, internalt, internalrh], '°C', 'Intérieur vs Extérieur', 'RH%'))
+            logAndPlot(os.path.join(
+                arg.output, 'Comparaison intérieur vs extérieur - Baselines.html'), sensors.scattersToFigure(
+                [external, internalt, internalrh, external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - avec baselines', 'RH%'))
+            logAndPlot(os.path.join(
+                arg.output, 'Comparaison intérieur vs extérieur - Uniquement baselines.html'), sensors.scattersToFigure(
+                [external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - uniquement baselines', 'RH%'))
+        plotters.append(extvsint)
 
     if arg.verbose or arg.meta:
         # Generate one file per meta sensor with/without baseline
@@ -168,28 +180,29 @@ def main(argv=None):
             if not os.path.isdir(folder):
                 os.mkdir(folder)
 
-            fig = data.toFigure(
-                lambda s: s.name in lst and s.clazz == 'Sensor', '°C', name, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')
-            plotIfExist(os.path.join(folder, 'mesures.html'), fig)
+            plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures.html'), data.toFigure(
+                lambda s: s.name in clst and s.clazz == 'Sensor', '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')))
 
-            fig = data.toFigure(
-                lambda s: s.name in lst and s.clazz == 'Sensor->Baseline', '°C', name + "- Baselines", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')
-            plotIfExist(os.path.join(folder, 'baselines.html'), fig)
+            plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'baselines.html'), data.toFigure(
+                lambda s: s.name in clst and s.clazz == 'Sensor->Baseline', '°C', cname + "- Baselines", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')))
 
-            fig = data.toFigure(
-                lambda s: s.name in lst and s.clazz in ('Sensor', 'Sensor->Baseline'), '°C', name + "- Mesures et Baselines", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')
-            plotIfExist(os.path.join(folder, 'mesures et baselines.html'), fig)
-
-            fig = data.toFigure(
-                lambda s: s.name in lst, '°C', name + "- Tous", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')
-            plotIfExist(os.path.join(folder, 'tous.html'), fig)
+            plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(
+                cfolder, 'mesures et baselines.html'), data.toFigure(
+                lambda s: s.name in clst and s.clazz in ('Sensor', 'Sensor->Baseline'), '°C', cname + "- Mesures et Baselines", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')))
+            plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'tous.html'), data.toFigure(
+                lambda s: s.name in clst, '°C', cname + "- Tous", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')))
 
     if arg.verbose or arg.detail:
         # Generate one file per sensor
         os.mkdir(os.path.join(arg.output, 'details'))
+
         for name, s in data.items():
-            logAndPlot(os.path.join(arg.output, 'details', name.translate(
-                str.maketrans('/:\\', '---')) + ".html"), sensors.sensorToFigure(s, s.name))
+
+            plotters.append(lambda cname=name, cs=s: logAndPlot(os.path.join(arg.output, 'details', cname.translate(
+                str.maketrans('/:\\', '---')) + ".html"), sensors.sensorToFigure(cs, cs.name)))
+
+    with ThreadPoolExecutor(max_workers=arg.tc, thread_name_prefix='plotter') as e:
+        [e.submit(p) for p in plotters]
 
 
 if __name__ == "__main__":

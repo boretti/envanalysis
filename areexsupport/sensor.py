@@ -37,8 +37,7 @@ class sensor:
 
     @staticmethod
     def __dateTimeTo5Minute(d):
-        d = sensor.dateTimeToMinute()(d)
-        return d.replace(minute=(d.minute // 5) * 5)
+        return d.replace(minute=(d.minute // 5) * 5, second=0, microsecond=0)
 
     @staticmethod
     def dateTimeTo5Minute():
@@ -217,9 +216,9 @@ class sensor:
             if maxSensor != None:
                 maxyt.append(maxSensor.__values[d] - v)
         if (len(xt) == len(minyt) and len(xt) == len(maxyt)):
-            return go.Scattergl(x=xt, y=yt, name=self.__name if name == None else name, error_y=dict(type='data', symmetric=False, array=maxyt, arrayminus=minyt), yaxis=yaxis)
+            return go.Scattergl(x=xt, y=np.asarray(yt), name=self.__name if name == None else name, error_y=dict(type='data', symmetric=False, array=np.asarray(maxyt), arrayminus=np.asarray(minyt)), yaxis=yaxis)
         else:
-            return go.Scattergl(x=xt, y=yt, name=self.__name if name == None else name, yaxis=yaxis)
+            return go.Scattergl(x=xt, y=np.asarray(yt), name=self.__name if name == None else name, yaxis=yaxis)
 
     def toBaseLine(self):
         '''

@@ -1,9 +1,11 @@
 
 # encoding: utf-8
 '''
-Created on 10 juil. 2018
+Support of a set of areex sensors.
 
-@author: borettim
+This module exposes the sensors class.
+
+This module only exposes one single class : sensors ; Just use `from areexsupport.sensors import sensors` to use it
 '''
 
 from areexsupport.sensor import sensor
@@ -20,8 +22,12 @@ __all__ = ["sensors"]
 
 class sensors:
     '''
-    This is a list of data sensor
+    This is a list of data sensors.
+
+    This object is build from the pseudo csv of an export of the areex sensor.
     '''
+
+    __dtz = timezone('Europe/Zurich')
 
     def __iter__(self):
         '''
@@ -30,16 +36,34 @@ class sensors:
         return iter(self.__sensors.keys())
 
     def items(self):
+        '''
+        Provides the sensors.
+        '''
         return self.__sensors.items()
 
     def keys(self):
+        '''
+        Provides the sensors name.
+        '''
         return self.__sensors.keys()
 
     def values(self):
+        '''
+        Provides the sensors.
+        '''
         return self.__sensors.values()
 
     def __getitem__(self, name):
+        '''
+        Return a sensor by his name.
+        '''
         return self.__sensors[name]
+
+    def __len__(self):
+        '''
+        Return the number of sensors.
+        '''
+        return len(self.__sensors.items())
 
     @property
     def metassensors(self):
@@ -66,7 +90,7 @@ class sensors:
         hour = int(instr[11:13])
         minute = int(instr[14:16])
         second = int(instr[17:19])
-        return datetime(year, month, day, hour, minute, second)
+        return datetime(year, month, day, hour, minute, second, 0, sensors.__dtz)
 
     def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: {'def': {k: v for k, v in n.items()}}, filterOutFunction=None):
         self.__sensors = {}
@@ -74,13 +98,21 @@ class sensors:
         sensorByPos = {}
         dtlimit = timezone(
             'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
-        dtzone = timezone('Europe/Zurich')
         try:
             s = 0
-            f = open(filename, 'r')
+            f = open(filename, 'r', buffering=1024 * 1024)
             for n, l in enumerate(f, 1):
                 if n % 100000 == 0:
                     logger.info("Processing line:{}".format(n))
+                if s == 4 and l != '\n':
+                    ls = l.rstrip('\n').split('\t')
+                    dt_obj = sensors.__fastparsedate(ls[0])
+                    if dtlimit > dt_obj:
+                        continue
+                    for p, v in filter(lambda pi: pi[1] != '', enumerate(ls[1:], start=1)):
+                        sensorByPos[p].add(
+                            float(v), dt_obj)
+                    continue
                 if s == 0 and l.startswith('Sensors:'):
                     s = 1
                     continue
@@ -99,15 +131,7 @@ class sensors:
                     cs = sensor(n, ls[2], ls[0])
                     sensorByPos[int(ls[0])] = cs
                     self.__sensors[cs.name] = cs
-                if s == 4 and l != '\n':
-                    ls = l.rstrip('\n').split('\t')
-                    dt_obj = dtzone.localize(sensors.__fastparsedate(ls[0]))
-                    if dtlimit > dt_obj:
-                        continue
-                    for p, v in enumerate(ls[1:]):
-                        if v != '':
-                            self.__sensors[sensorByPos[p +
-                                                       1].name].add(float(v), dt_obj)
+
         finally:
             f.close()
         if filterOutFunction != None:
