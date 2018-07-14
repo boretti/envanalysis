@@ -121,6 +121,9 @@ class sensor:
         return self.__groupe
 
     def __iter__(self):
+        '''
+        Provides iterator support, based on the date of the measures.
+        '''
         return iter(self.__values.keys())
 
     def __init__(self, name, unit='V', pos=1, val=None, clazz='Sensor', parent=None, groupe=None):
@@ -181,6 +184,11 @@ class sensor:
         return s
 
     def __sub__(self, other):
+        '''
+        Substract two sensors.
+
+        Only date time existing in both sensor are substract.
+        '''
         logger.debug('Generate a new sensor for %s (minus) %s', self, other)
         if not isinstance(other, sensor):
             raise ValueError('other must be a SensorClass')
