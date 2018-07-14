@@ -111,22 +111,23 @@ def main(argv=None):
         print('Writing to {}'.format(output))
         plot(data.toFigure(
             sensor.sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures'), filename=output, auto_open=False)
-    
+
         # All rh
         output = os.path.join(arg.output, 'Toutes les humidités.html')
         print('Writing to {}'.format(output))
         plot(data.toFigure(
             sensor.sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités'), filename=output, auto_open=False)
-    
+
         # All temp
         output = os.path.join(
             arg.output, 'Toutes les températures - Baseline.html')
         print('Writing to {}'.format(output))
         plot(data.toFigure(
             sensor.sensorIsUnitAndClazz('°C', 'Sensor->Baseline'), '°C', 'Toutes les températures - Baseline'), filename=output, auto_open=False)
-    
+
         # All rh
-        output = os.path.join(arg.output, 'Toutes les humidité - Baselines.html')
+        output = os.path.join(
+            arg.output, 'Toutes les humidité - Baselines.html')
         print('Writing to {}'.format(output))
         plot(data.toFigure(
             sensor.sensorIsUnitAndClazz('RH%', 'Sensor->Baseline'), '°C', 'Toutes les humidités - Baseline'), filename=output, auto_open=False)
@@ -151,35 +152,35 @@ def main(argv=None):
                 str.maketrans('/:\\', '---')))
             if not os.path.isdir(folder):
                 os.mkdir(folder)
-    
+
             output = os.path.join(folder, 'mesures.html')
             fig = data.toFigure(
                 lambda s: s.name in lst and s.clazz == 'Sensor', '°C', name, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')
             if len(fig['data']) > 0:
                 print('Writing to {}'.format(output))
                 plot(fig, filename=output, auto_open=False)
-    
+
             output = os.path.join(folder, 'baselines.html')
             fig = data.toFigure(
                 lambda s: s.name in lst and s.clazz == 'Sensor->Baseline', '°C', name + "- Baselines", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')
             if len(fig['data']) > 0:
                 print('Writing to {}'.format(output))
                 plot(fig, filename=output, auto_open=False)
-    
+
             output = os.path.join(folder, 'mesures et baselines.html')
             fig = data.toFigure(
                 lambda s: s.name in lst and s.clazz in ('Sensor', 'Sensor->Baseline'), '°C', name + "- Mesures et Baselines", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')
             if len(fig['data']) > 0:
                 print('Writing to {}'.format(output))
                 plot(fig, filename=output, auto_open=False)
-    
+
             output = os.path.join(folder, 'tous.html')
             fig = data.toFigure(
                 lambda s: s.name in lst, '°C', name + "- Tous", '%RH', lambda s: 'y' if s.unit == '°C' else 'y2')
             if len(fig['data']) > 0:
                 print('Writing to {}'.format(output))
                 plot(fig, filename=output, auto_open=False)
-            
+
     if arg.verbose or arg.detail:
         # Generate one file per sensor
         os.mkdir(os.path.join(arg.output, 'details'))
@@ -189,6 +190,7 @@ def main(argv=None):
             print('Writing to {}'.format(output))
             plot(sensors.sensorToFigure(s, s.name),
                  filename=output, auto_open=False)
+
 
 if __name__ == "__main__":
     sys.exit(main())

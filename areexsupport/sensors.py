@@ -37,8 +37,8 @@ class sensors:
 
     def values(self):
         return self.__sensors.values()
-    
-    def __getitem__(self,name):
+
+    def __getitem__(self, name):
         return self.__sensors[name]
 
     @property
@@ -48,7 +48,7 @@ class sensors:
     @property
     def groupsensors(self):
         return self.__metasensors.items()
-    
+
     @property
     def sensors(self):
         return self.__sensors.items()

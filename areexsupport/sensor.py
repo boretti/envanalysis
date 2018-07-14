@@ -186,7 +186,7 @@ class sensor:
 
             Optional parameters :
             - name : to override the name of the scatter (by default this is the name of the sensor)
-            - minSensor : to specify another sensor to be used as min value for the error on y. 
+            - minSensor : to specify another sensor to be used as min value for the error on y.
             - maxSensor : to specify another sensor to be used as max value for the error on y.
             - yaxis : to override the default y axis
 
