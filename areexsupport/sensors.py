@@ -23,6 +23,36 @@ class sensors:
     This is a list of data sensor
     '''
 
+    def __iter__(self):
+        '''
+        Provides iterator support, based on the sensors name.
+        '''
+        return iter(self.__sensors.keys())
+
+    def items(self):
+        return self.__sensors.items()
+
+    def keys(self):
+        return self.__sensors.keys()
+
+    def values(self):
+        return self.__sensors.values()
+    
+    def __getitem__(self,name):
+        return self.__sensors[name]
+
+    @property
+    def metassensors(self):
+        return self.__metasensors.items()
+
+    @property
+    def groupsensors(self):
+        return self.__metasensors.items()
+    
+    @property
+    def sensors(self):
+        return self.__sensors.items()
+
     @staticmethod
     def __fastparsedate(instr):
         # '01.01.2017 00:00:00'
@@ -34,8 +64,9 @@ class sensors:
         second = int(instr[17:19])
         return datetime(year, month, day, hour, minute, second)
 
-    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default'):
+    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: n, filterOutFunction=None):
         self.__sensors = {}
+        self.__groups = {}
         sensorByPos = {}
         dtlimit = timezone(
             'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
@@ -61,7 +92,7 @@ class sensors:
                 if s == 2 and l != '\n':
                     ls = l.rstrip('\n').split('\t')
                     n = ls[1]
-                    cs = sensor(n, ls[2], ls[0], groupe=groupFunction(n))
+                    cs = sensor(n, ls[2], ls[0])
                     sensorByPos[int(ls[0])] = cs
                     self.__sensors[cs.name] = cs
                 if s == 4 and l != '\n':
@@ -75,6 +106,18 @@ class sensors:
                                                        1].name].add(float(v), dt_obj)
         finally:
             f.close()
+        if filterOutFunction != None:
+            logger.info("Filter sensor by using %s", filterOutFunction)
+            self.__sensors = {
+                n: v for n, v in self.__sensors.items() if not filterOutFunction(v)}
+        logger.info("Create group sensor by using %s", groupFunction)
+        for s in self.__sensors.values():
+            gname = groupFunction(s.name)
+            if gname not in self.__groups:
+                self.__groups[gname] = []
+            self.__groups[gname].append(s)
+        logger.info("Create meta sensor by using %s", metaFunction)
+        self.__metasensors = metaFunction(self.__sensors)
         logger.info("Post processing data : merging by %s", mergeFunction)
         self.__mergeValueBy(mergeFunction)
         logger.info("Post processing data : computing point de rosee")
@@ -92,31 +135,45 @@ class sensors:
             v.mergeValueBy(functionToMergeTime)
 
     def __computePointRosee(self):
-        for rh in self.sensorsByUnitAndClazzAndGroup("RH%", 'Sensor', 'Intérieur'):
-            snt = rh.name.replace(' - RH', ' - T')
-            if snt in self.__sensors:
-                t = self.__sensors[snt]
-                pt = {d: t.values[d] - (100 - v) / 5 for d,
-                      v in rh.values.items() if d in t.values}
-                n = rh.name.replace(' - RH', ' - Point de rosée')
-                s = sensor(n, "°C", -1, pt, 'Point de rosée',
-                           parent=[rh, t], groupe='Intérieur')
-                rh.addChildren(s)
-                t.addChildren(s)
-                self.__sensors[n] = s
+        for msn, ms in list(self.__metasensors.items()):
+            if len(ms) < 2:
+                continue
+            tl = [s for s in ms.values() if s.unit ==
+                  '°C' and s.clazz == 'Sensor']
+            if len(tl) != 1:
+                continue
+            rhl = [s for s in ms.values() if s.unit ==
+                   'RH%' and s.clazz == 'Sensor']
+            if len(rhl) != 1:
+                continue
+            logger.info(
+                "Post processing data : computing point de rosee for %s", msn)
+            t = tl[0]
+            rh = rhl[0]
+            gs = [g for g, v in self.__groups.items() if t in v or rh in v]
+            pt = {d: t.values[d] - (100 - v) / 5 for d,
+                  v in rh.values.items() if d in t.values}
+            n = msn + ' - Point de rosée'
+            s = sensor(n, "°C", -1, pt, 'Point de rosée')
+            self.__sensors[n] = s
+            self.__metasensors[msn][n] = s
+            for g in gs:
+                self.__groups[g].append(s)
 
     def __computeDistribution(self):
-        groups = set(map(lambda v: v.groupe, self.__sensors.values()))
+        groups = self.__groups.keys()
         units = set(map(lambda v: v.unit, self.__sensors.values()))
         clazzs = set(map(lambda v: v.clazz, self.__sensors.values()))
         for g in groups:
             for u in units:
                 for c in clazzs:
-                    tsensor = self.sensorsByFunction(
-                        lambda this: this.groupe == g and this.unit == u and this.clazz == c)
+                    tsensor = self.sensorsByFunctionInGroup(
+                        lambda this: this.unit == u and this.clazz == c, g)
                     if len(tsensor) > 1:
                         logger.info(
                             "Post processing data : compute distribution for  %s > %s > %s", g, u, c)
+                        if g not in self.__metasensors:
+                            self.__metasensors[g] = {}
                         tvalues = {}
                         for sn in tsensor:
                             for dt, v in sn.values.items():
@@ -125,63 +182,63 @@ class sensors:
                                 tvalues[dt].append(v)
                         target = {'p-Variance': statistics.pvariance, 'Mean': statistics.mean,
                                   'Median': statistics.median, 'Min': min, 'Max': max}
+                        mn = '{} - {} [{}]'.format(g, c, u)
+                        self.__metasensors[mn] = {s.name: s for s in tsensor}
+                        for s in tsensor:
+                            self.__metasensors[g][s.name] = s
                         for name, method in target.items():
                             logger.info(
                                 "Post processing data : compute distribution for  %s > %s > %s > %s", g, u, c, name)
                             n = '{} - {} [{}] / {}'.format(g, c, u, name)
                             s = sensor(n, u, -1, {d: method(v) for d, v in tvalues.items(
-                            )},  c + "->" + name, parent=tsensor, groupe=g)
-                            for t in tsensor:
-                                t.addChildren(s)
+                            )},  c + "->" + name)
+                            self.__groups[g].append(s)
                             self.__sensors[n] = s
+                            self.__metasensors[mn][n] = s
+                            self.__metasensors[g][n] = s
 
     def __computeBaseLine(self):
-        for sn in list(self.__sensors.values()):
+        for g, v in list(self.__groups.items()):
             logger.info(
-                "Post processing data : compute baseline for %s", sn.name)
-            s = sn.toBaseLine()
-            self.__sensors[s.name] = s
+                "Post processing data : compute baseline for group %s", g)
+            for sn in list(v):
+                logger.info(
+                    "Post processing data : compute baseline for sensor %s", sn.name)
+                s = sn.toBaseLine()
+                self.__sensors[s.name] = s
+                self.__groups[g].append(s)
+                mn = [mn for mn, v in self.__metasensors.items()
+                      if sn in v.values()]
+                for m in mn:
+                    self.__metasensors[m][s.name] = s
 
     def __repr__(self):
-        groups = set(map(lambda v: v.groupe, self.__sensors.values()))
+        def allsensors():
+            return '\n\t'.join(map(sensor.__repr__, sorted(self.__sensors.values())))
 
-        def gtostr(g):
-            sensors = self.sensorsByFunction(sensor.sensorIsGroup(g))
-            clazzs = set(map(lambda v: v.clazz, sensors))
+        def allgroups():
+            return '\n\t'.join(map(lambda g: '{}\n\t\t{}'.format(g, '\n\t\t'.join(map(sensor.__repr__, self.__groups[g]))), sorted(self.__groups.keys())))
 
-            def ctostr(c):
-                return '{}:\n\t\t{}'.format(c, '\n\t\t'.join(map(sensor.__repr__, [s for s in sensors if s.clazz == c])))
+        def allmetas():
+            return '\n\t'.join(map(lambda m: '{}\n\t\t{}'.format(m, '\n\t\t'.join(map(sensor.__repr__, self.__metasensors[m].values()))), sorted(self.__metasensors.keys())))
 
-            return '{}:\n\t{}'.format(g, '\n\t'.join(map(ctostr, sorted(clazzs))))
-
-        return 'Sensors :\n{}'.format('\n'.join(map(gtostr, sorted(groups))))
+        return 'All Sensors :\n\t{}\nGroups:\n\t{}\nMeta Sensors:\n\t{}'.format(allsensors(), allgroups(), allmetas())
 
     def sensorsByFunction(self, acceptFunction):
         return [value for value in self.__sensors.values() if acceptFunction(value)]
 
-    def sensorsByUnitAndClazz(self, unit, clazz):
+    def sensorsByFunctionInGroup(self, acceptFunction, group):
+        return [value for value in self.__groups[group] if acceptFunction(value)]
 
-        def finder(s):
-            return s.unit == unit and s.clazz == clazz
-
-        return self.sensorsByFunction(finder)
-
-    def sensorsByUnitAndClazzAndGroup(self, unit, clazz, groupe):
-
-        def finder(s):
-            return s.unit == unit and s.clazz == clazz and s.groupe == groupe
-
-        return self.sensorsByFunction(finder)
-
-    def toFigure(self, acceptFunctionOnSensor, ytitle, title=None, y2label=None):
-        return sensors.__tofigureObject([x.asScatter() for x in self.sensorsByFunction(acceptFunctionOnSensor)], ytitle, title, y2label)
+    def toFigure(self, acceptFunctionOnSensor, ytitle, title=None, y2label=None, functionYAxis=lambda n: 'y'):
+        return sensors.__tofigureObject([x.asScatter(yaxis=functionYAxis(x)) for x in self.sensorsByFunction(acceptFunctionOnSensor)], ytitle, title, y2label)
 
     @staticmethod
-    def __oneToFigure(sensor, title=None):
+    def sensorToFigure(sensor, title=None):
         return sensors.__tofigureObject([sensor.asScatter()], sensor.unit, title)
 
     @staticmethod
-    def __toFigureFromScatters(scatters, ytitle, title=None, y2label=None):
+    def scattersToFigure(scatters, ytitle, title=None, y2label=None):
         return sensors.__tofigureObject(scatters, ytitle, title, y2label)
 
     @staticmethod
@@ -227,89 +284,3 @@ class sensors:
                 title=title
             )
         )
-
-    def toMultiFigures(self):
-
-        def isExterieur(s):
-            return s.groupe == 'Extérieur'
-
-        def isSensor(s):
-            return sensor.sensorIsClazz('Sensor')(s)
-
-        def isSensorBaseline(s):
-            return sensor.sensorIsClazz('Sensor->Baseline')(s)
-
-        # Generate one file per sensor
-        result = {'details': {name: sensors.__oneToFigure(
-            value, value.name) for name, value in self.__sensors.items()}, '/': {}, 'compare': {}, 'analyse': {}}
-
-        # Generate a file with all input temp
-        result['/']['Toutes les températures'] = self.toFigure(
-            sensor.sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures')
-        # Generate a file with all input rh
-        result['/']['Toutes les humidités'] = self.toFigure(
-            sensor.sensorIsUnitAndClazz('RH%', 'Sensor'), 'RH%', 'Toutes les humidités')
-        # Generate a file with all baseline temp
-        result['/']['Toutes les températures - Baseline'] = self.toFigure(sensor.sensorIsUnitAndClazz(
-            '°C', 'Sensor->Baseline'), '°C', 'Toutes les températures - Baseline')
-        # Generate a file with all baseline rh
-        result['/']['Toutes les humidités - Baseline'] = self.toFigure(sensor.sensorIsUnitAndClazz(
-            'RH%', 'Sensor->Baseline'), 'RH%', 'Toutes les humidités - Baseline')
-
-        # Generate on file per input sensor and baseline
-        for cs in self.sensorsByFunction(isSensor):
-            result['compare'][cs.name + " et Baseline"] = self.toFigure(lambda this: this == cs or (
-                cs in this.parent and isSensorBaseline(this)), cs.unit, cs.name + " et Baseline")
-        # Generate on file per temp sensor vs exterieur
-        for cs in self.sensorsByFunction(lambda this: sensor.sensorIsUnitAndClazz('°C', 'Sensor')(this) and sensor.sensorIsGroup('Intérieur')(this)):
-            result['compare'][cs.name + " vs Extérieur"] = self.toFigure(lambda this: this == cs or (
-                isExterieur(this) and isSensor(this)), cs.unit, cs.name + " vs Extérieur")
-        # Generate on file per temp sensor vs exterieur (baseline)
-        for cs in self.sensorsByFunction(lambda this: sensor.sensorIsUnitAndClazz('°C', 'Sensor->Baseline')(this) and sensor.sensorIsGroup('Intérieur')(this)):
-            result['compare'][cs.name + " vs Extérieur - Baseline"] = self.toFigure(lambda this: this == cs or (
-                isExterieur(this) and isSensorBaseline(this)), cs.unit, cs.name + " vs Extérieur - Baseline")
-
-        # Interieur vs Exterieur
-        external = self.__sensors['Extérieur'].asScatter()
-        internal = self.__sensors['Intérieur - Sensor [°C] / Mean'].asScatter(
-            name='Intérieur', minSensor=self.__sensors['Intérieur - Sensor [°C] / Min'], maxSensor=self.__sensors['Intérieur - Sensor [°C] / Max'])
-        result['/']['Comparaison intérieur vs extérieur'] = sensors.__toFigureFromScatters(
-            [external, internal], '°C', 'Intérieur vs Extérieur')
-
-        external_b = self.__sensors['Extérieur - baseline'].asScatter()
-        internal_b = self.__sensors['Intérieur - Sensor [°C] / Mean - baseline'].asScatter(
-            name='Intérieur / Baseline')
-        result['/']['Comparaison intérieur vs extérieur - avec baseline'] = sensors.__toFigureFromScatters(
-            [external, internal, external_b, internal_b], '°C', 'Intérieur vs Extérieur')
-
-        internalcm = self.__sensors['Intérieur - Sensor [°C] / Mean'].asScatter(
-            name='Intérieur - Température')
-        internalcmb = self.__sensors['Intérieur - Sensor [°C] / Mean - baseline'].asScatter(
-            name='Intérieur - Température / Baseline')
-        internalrhm = self.__sensors['Intérieur - Sensor [RH%] / Mean'].asScatter(
-            name='Intérieur - Humidité', yaxis='y2')
-        internalrhb = self.__sensors['Intérieur - Sensor [RH%] / Mean - baseline'].asScatter(
-            name='Intérieur - Humidité / Baseline', yaxis='y2')
-        result['/']['Comparaison intérieur vs extérieur - avec baseline et humidité'] = sensors.__toFigureFromScatters(
-            [internalcm, internalcmb, internalrhm, internalrhb, external, external_b], '°C', 'Intérieur vs Extérieur', 'RH%')
-
-        # Analyse de détail atelier sous fenêtre
-
-        sous = self.__sensors['Atelier Sous-fenêtre - T'].asScatter(
-            name='Atelier Sous-fenêtre')
-        sousb = self.__sensors['Atelier Sous-fenêtre - T - baseline'].asScatter(
-            name='Atelier Sous-fenêtre - baseline')
-        diff_ext = (self.__sensors['Atelier Sous-fenêtre - T'] - self.__sensors['Extérieur']
-                    ).asScatter(name='Différence extérieur-atelier sous fenêtre')
-        diff_extb = (self.__sensors['Atelier Sous-fenêtre - T - baseline'] - self.__sensors['Extérieur - baseline']
-                     ).asScatter(name='Différence extérieur-atelier sous fenêtre - baseline')
-        result['analyse']['Comparaison Atelier sous-fenêtre vs extérieur'] = sensors.__toFigureFromScatters(
-            [external, external_b, sous, sousb, diff_ext, diff_extb], '°C', 'Atelier sous fenêtre vs Extérieur')
-
-        # TODO
-
-        return result
-
-    def filterOutSensor(self, filterFunctionToRemove):
-        self.__sensors = {n: v for n, v in self.__sensors.items(
-        ) if not filterFunctionToRemove(v)}

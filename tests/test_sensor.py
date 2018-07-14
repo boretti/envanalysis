@@ -19,30 +19,14 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(s.pos, 1, 'Validate pos is OK')
         self.assertEqual(len(s.values), 0, 'Validate value is OK')
         self.assertEqual(s.clazz, 'Sensor', 'Validate clazz is OK')
-        self.assertEqual(s.parent, [], 'Validate parent is OK')
-        self.assertEqual(s.children, [], 'Validate children is OK')
-        self.assertEqual(s.groupe, None, 'Validate group is OK')
 
     def testSensorInitExplicit(self):
-        s1 = sensor('name1')
-        s = sensor('name', 'RH%', 2, {'x': 'y'}, 'c', [s1], 'g')
+        s = sensor('name', 'RH%', 2, {'x': 'y'}, 'c')
         self.assertEqual(s.name, 'name', 'Validate name is OK')
         self.assertEqual(s.unit, 'RH%', 'Validate unit is OK')
         self.assertEqual(s.pos, 2, 'Validate pos is OK')
         self.assertEqual(s.values, {'x': 'y'}, 'Validate value is OK')
         self.assertEqual(s.clazz, 'c', 'Validate clazz is OK')
-        self.assertEqual(len(s.parent), 1, 'Validate parent is OK')
-        self.assertEqual(s.parent[0].name, 'name1', 'Validate parent is OK')
-        self.assertEqual(s.children, [], 'Validate children is OK')
-        self.assertEqual(s.groupe, 'g', 'Validate group is OK')
-
-    def testSensorIsGroup(self):
-        s1 = sensor('name', 'RH%', 2)
-        s2 = sensor('name', 'V', 2, groupe='g')
-        self.assertFalse(sensor.sensorIsGroup('g')(s1),
-                         "Validate that s1 is not g")
-        self.assertTrue(sensor.sensorIsGroup('g')(s2),
-                        "Validate that s2 is not g")
 
     def testSensorSensorIsUnit(self):
         s1 = sensor('name', 'RH%', 2)
@@ -50,14 +34,6 @@ class SensorTest(unittest.TestCase):
         self.assertFalse(sensor.sensorIsUnit('V')(s1),
                          "Validate that s1 is not V")
         self.assertTrue(sensor.sensorIsUnit('V')(s2),
-                        "Validate that s2 is not V")
-
-    def testSensorSensorIsClazz(self):
-        s1 = sensor('name', 'RH%', 2, clazz='s')
-        s2 = sensor('name', 'V', 2, clazz='t')
-        self.assertFalse(sensor.sensorIsClazz('t')(s1),
-                         "Validate that s1 is not V")
-        self.assertTrue(sensor.sensorIsClazz('t')(s2),
                         "Validate that s2 is not V")
 
     def testSensorIsUnitAndClazz(self):
@@ -88,14 +64,6 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(len(s.values), 1, 'Must be 0')
         self.assertTrue(d1 in s, "Must contains the d1 key")
         self.assertEqual(s.values[d1], 1.0, "Must be correct value")
-
-    def testAddChildren(self):
-        sr = sensor('xxx')
-        s = sensor('name')
-        self.assertEqual(len(s.children), 0, 'Must be empty')
-        s.addChildren(sr)
-        self.assertEqual(len(s.children), 1, 'Must be 0')
-        self.assertTrue(sr in s.children, "Must contains the sr key")
 
     def testSensorDateTimeTo5Minute(self):
         m = sensor.dateTimeTo5Minute()
@@ -168,12 +136,6 @@ class SensorTest(unittest.TestCase):
             s2.values[d3], 3.1, msg="Third value should be around 3.1")
         self.assertAlmostEqual(
             s2.values[d4], 4.1, msg="Fourth value should be around 4.1")
-        self.assertEqual(len(s.children), 1, 'Validate parent as one child')
-        self.assertEqual(
-            s.children[0].name, 'name - baseline', 'Validate parent have correct children')
-        self.assertEqual(len(s2.parent), 1, 'Validate child as one parent')
-        self.assertEqual(s2.parent[0].name, 'name',
-                         'Validate children have correct parent')
 
     def testSub(self):
         d1 = timezone(
@@ -268,11 +230,50 @@ class SensorTest(unittest.TestCase):
         self.assertEquals(s3, s2, "S3 must be eq to s1")
         self.assertNotEquals(s1, 'x', "S1 must be diff that a string")
 
-    def testStr(self):
+    def testLt(self):
         s1 = sensor('name1')
-        s = sensor('name', 'RH%', 2, {'x': 'y'}, 'c', [s1], 'g')
+        s2 = sensor('name2')
+        s3 = sensor('name2', unit='RH%')
+        self.assertTrue(s1 < s2, "s1< s2")
+        self.assertFalse(s2 < s3, "s2< s3")
+        self.assertFalse(s2 < s1, "s2< s1")
+        self.assertFalse(s3 < s2, "s3< s2")
+        self.assertFalse(s1 < 'x', "S1 must be diff that a string")
+
+    def testLe(self):
+        s1 = sensor('name1')
+        s2 = sensor('name2')
+        s3 = sensor('name2', unit='RH%')
+        self.assertTrue(s1 <= s2, "s1<= s2")
+        self.assertTrue(s2 <= s3, "s2<= s3")
+        self.assertFalse(s2 <= s1, "s2<= s1")
+        self.assertTrue(s3 <= s2, "s3<= s2")
+        self.assertFalse(s1 <= 'x', "S1 must be diff that a string")
+
+    def testGt(self):
+        s1 = sensor('name1')
+        s2 = sensor('name2')
+        s3 = sensor('name2', unit='RH%')
+        self.assertFalse(s1 > s2, "s1> s2")
+        self.assertFalse(s2 > s3, "s2> s3")
+        self.assertTrue(s2 > s1, "s2> s1")
+        self.assertFalse(s3 > s2, "s3> s2")
+        self.assertFalse(s1 > 'x', "S1 must be diff that a string")
+
+    def testGe(self):
+        s1 = sensor('name1')
+        s2 = sensor('name2')
+        s3 = sensor('name2', unit='RH%')
+        self.assertFalse(s1 >= s2, "s1>= s2")
+        self.assertTrue(s2 >= s3, "s2>= s3")
+        self.assertTrue(s2 >= s1, "s2>= s1")
+        self.assertTrue(s3 >= s2, "s3>= s2")
+        self.assertFalse(s1 >= 'x', "S1 must be diff that a string")
+
+    def testStr(self):
+        s = sensor('name', 'RH%', 2, {'x': 'y'}, 'c')
         self.assertEquals(str(
-            s), "name:\tunit:RH%\tposition:2\tvalues count:1\tclazz:c\tparent:['name1']\tchildren:[]\tgroupe:g")
+            s), "name:\tunit:RH%\tposition:2\tvalues count:1\tclazz:c")
 
 
 if __name__ == "__main__":

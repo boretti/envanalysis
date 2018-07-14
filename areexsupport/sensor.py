@@ -48,16 +48,8 @@ class sensor:
         return sensor.__dateTimeTo5Minute
 
     @staticmethod
-    def sensorIsGroup(groupe):
-        return lambda v: v.groupe == groupe
-
-    @staticmethod
     def sensorIsUnit(unit):
         return lambda v: v.unit == unit
-
-    @staticmethod
-    def sensorIsClazz(clazz):
-        return lambda v: v.clazz == clazz
 
     @staticmethod
     def sensorIsUnitAndClazz(unit, clazz):
@@ -108,50 +100,98 @@ class sensor:
         '''
         return self.__clazz
 
-    @property
-    def parent(self):
-        return self.__parent
-
-    @property
-    def children(self):
-        return self.__children
-
-    @property
-    def groupe(self):
-        return self.__groupe
-
     def __iter__(self):
         '''
         Provides iterator support, based on the date of the measures.
         '''
         return iter(self.__values.keys())
 
-    def __init__(self, name, unit='V', pos=1, val=None, clazz='Sensor', parent=None, groupe=None):
+    def __init__(self, name, unit='V', pos=1, val=None, clazz='Sensor'):
+        '''
+            Initialize this sensor.
+
+            Mandatory parameters :
+            - name : This is the name of this sensor and it should be unique.
+
+            Optional paramters :
+            - unit : This is the unit of this sensor (by default V), others classical value are °C and RH%.
+            - pos : This is the position of this sensor in the pseudo csv from areex.
+            - val : Initial values for this sensor. By default none
+            - clazz : This is the clazz of this sensor. By default a real sensor is Sensor.
+        '''
         self.__unit = unit
         self.__name = name
         self.__pos = pos
         self.__values = {} if val == None else val
         self.__clazz = clazz
-        self.__parent = [] if parent == None else parent
-        self.__children = []
-        self.__groupe = groupe
+
         logger.debug('A new sensor has been created - %s', self)
 
     def __eq__(self, other):
+        '''
+        Compare two sensor, by comparing there name, for equality
+        '''
         if isinstance(other, sensor):
             return self.name == other.name
         return False
 
+    def __lt__(self, other):
+        '''
+        Compare two sensor, by comparing there name, for less
+        '''
+        if isinstance(other, sensor):
+            return self.name < other.name
+        return False
+
+    def __le__(self, other):
+        '''
+        Compare two sensor, by comparing there name, for less or equal
+        '''
+        if isinstance(other, sensor):
+            return self.name <= other.name
+        return False
+
+    def __ge__(self, other):
+        '''
+        Compare two sensor, by comparing there name, for greather or equal
+        '''
+        if isinstance(other, sensor):
+            return self.name >= other.name
+        return False
+
+    def __gt__(self, other):
+        '''
+        Compare two sensor, by comparing there name, for greather
+        '''
+        if isinstance(other, sensor):
+            return self.name > other.name
+        return False
+
     def add(self, v, d):
+        '''
+        Add a value to this sensor.
+
+        This method is used by the framework itself.
+        '''
         self.__values[d] = v
 
-    def addChildren(self, c):
-        self.__children.append(c)
-
     def __repr__(self):
-        return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tclazz:{}\tparent:{}\tchildren:{}\tgroupe:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__clazz, [x.name for x in self.__parent], [x.name for x in self.__children], self.__groupe)
+        return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tclazz:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__clazz)
 
     def asScatter(self, name=None, minSensor=None, maxSensor=None, yaxis='y'):
+        '''
+            Generate a scatter (from plotly) for this sensor.
+
+            This return a Scattergl instance for this sensor. X are the datetime entries and Y are the measures.
+
+            Optional parameters :
+            - name : to override the name of the scatter (by default this is the name of the sensor)
+            - minSensor : to specify another sensor to be used as min value for the error on y. 
+            - maxSensor : to specify another sensor to be used as max value for the error on y.
+            - yaxis : to override the default y axis
+
+            minSensor and maxSensor, when used, must be used both at the same times and have the same number of value that this sensor. if not they are ignored.
+        '''
         logger.debug('Convert this sensor %s to a scatter', self)
         xt = []
         yt = []
@@ -170,6 +210,13 @@ class sensor:
             return go.Scattergl(x=xt, y=yt, name=self.__name if name == None else name, yaxis=yaxis)
 
     def toBaseLine(self):
+        '''
+            Generate another sensor, that contains the "baseline" for this sensor.
+            
+            The baseline is computed by using the peakutils module.
+            
+            The string ->Baseline is added to the original clazz to build the clazz of the generated sensor.
+        '''
         logger.debug('Generate a new sensor for baseline from %s', self)
         xt = []
         yt = []
@@ -179,8 +226,7 @@ class sensor:
         baseline_values = peakutils.baseline(np.asarray(yt))
         values = {xt[dt]: v for dt, v in enumerate(baseline_values)}
         s = sensor(self.__name + ' - baseline', unit=self.__unit, pos='_' + str(self.__pos), val=values,
-                   clazz=self.__clazz + '->Baseline', parent=[self], groupe=self.__groupe)
-        self.__children.append(s)
+                   clazz=self.__clazz + '->Baseline')
         return s
 
     def __sub__(self, other):
@@ -198,12 +244,18 @@ class sensor:
             if d in other.__values:
                 values[d] = v - other.__values[d]
         s = sensor(self.__name + ' (minus) ' + other.__name, unit=self.__unit, pos='_' + str(self.__pos),
-                   val=values, clazz=self.__clazz + '->Minus', parent=[self, other], groupe=self.__groupe)
-        self.__children.append(s)
-        other.__children.append(s)
+                   val=values, clazz=self.__clazz + '->Minus')
         return s
 
     def mergeValueBy(self, functionToMergeTime):
+        '''
+            Modify this sensor to merge values by a function.
+            
+            All date and times are merged by using the functionToMergeTime and the measures are averaged.
+            
+            Mandatory parameters :
+            - functionToMergeTime a function that receive the date and time and return the merged date and time
+        '''
         logger.debug('Merge value for %s', self)
         tvalues = {}
         for d, v in self.__values.items():
