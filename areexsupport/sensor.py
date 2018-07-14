@@ -212,9 +212,9 @@ class sensor:
     def toBaseLine(self):
         '''
             Generate another sensor, that contains the "baseline" for this sensor.
-            
+
             The baseline is computed by using the peakutils module.
-            
+
             The string ->Baseline is added to the original clazz to build the clazz of the generated sensor.
         '''
         logger.debug('Generate a new sensor for baseline from %s', self)
@@ -250,9 +250,9 @@ class sensor:
     def mergeValueBy(self, functionToMergeTime):
         '''
             Modify this sensor to merge values by a function.
-            
+
             All date and times are merged by using the functionToMergeTime and the measures are averaged.
-            
+
             Mandatory parameters :
             - functionToMergeTime a function that receive the date and time and return the merged date and time
         '''
