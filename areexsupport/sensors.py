@@ -12,7 +12,6 @@ from pytz import timezone
 import statistics
 
 import logging
-from builtins import property
 
 logger = logging.getLogger(__name__)
 

@@ -166,6 +166,44 @@ def testIter():
     assert nt == [d1, d2, d3, d4]
 
 
+def testItem():
+    d1 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
+    d2 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
+    d3 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
+    d4 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
+    s = sensor('name')
+    s.add(1.0, d1)
+    s.add(2.1, d2)
+    s.add(3.1, d3)
+    s.add(4.1, d4)
+    assert s[d1] == 1.0
+
+
+def testLen():
+    d1 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
+    d2 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
+    d3 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
+    d4 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
+    s = sensor('name')
+    assert len(s) == 0
+    s.add(1.0, d1)
+    assert len(s) == 1
+    s.add(2.1, d2)
+    assert len(s) == 2
+    s.add(3.1, d3)
+    assert len(s) == 3
+    s.add(4.1, d4)
+    assert len(s) == 4
+
+
 def testAsScatter():
     d1 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
@@ -199,6 +237,15 @@ def testAsScatter():
         5.0, 5.9, 1.9]
     assert list(sc2.error_y.arrayminus) == [
         0.5, 1.1, 0]
+
+
+def testHash():
+    s1 = sensor('name1')
+    s2 = sensor('name2')
+    s3 = sensor('name2', unit='RH%')
+    assert hash(s1) == hash('name1')
+    assert hash(s2) == hash('name2')
+    assert hash(s3) == hash('name2')
 
 
 def testEq():

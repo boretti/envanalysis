@@ -4,6 +4,8 @@
 Support of a areex sensor.
 
 This module exposes the sensor class.
+
+This module only exposes one single class : sensor ; Just use `from areexsupport.sensor import sensor` to use it
 '''
 
 import plotly.graph_objs as go
@@ -98,6 +100,18 @@ class sensor:
         '''
         return iter(self.__values.keys())
 
+    def __getitem__(self, date):
+        '''
+        Provides access by date to the dates
+        '''
+        return self.__values[date]
+
+    def __len__(self):
+        '''
+        Return the number of entry of this sensor
+        '''
+        return len(self.__values)
+
     def __init__(self, name, unit='V', pos=1, val=None, clazz='Sensor'):
         '''
             Initialize this sensor.
@@ -105,7 +119,7 @@ class sensor:
             Mandatory parameters :
             - name : This is the name of this sensor and it should be unique.
 
-            Optional paramters :
+            Optional parameters :
             - unit : This is the unit of this sensor (by default V), others classical value are °C and RH%.
             - pos : This is the position of this sensor in the pseudo csv from areex.
             - val : Initial values for this sensor. By default none
@@ -118,6 +132,12 @@ class sensor:
         self.__clazz = clazz
 
         logger.debug('A new sensor has been created - %s', self)
+
+    def __hash__(self):
+        '''
+        Compute hash, based on the name
+        '''
+        return hash(self.__name)
 
     def __eq__(self, other):
         '''
@@ -172,17 +192,17 @@ class sensor:
 
     def asScatter(self, name=None, minSensor=None, maxSensor=None, yaxis='y'):
         '''
-            Generate a scatter (from plotly) for this sensor.
+        Generate a scatter (from plotly) for this sensor.
 
-            This return a Scattergl instance for this sensor. X are the datetime entries and Y are the measures.
+        This return a Scattergl instance for this sensor. X are the datetime entries and Y are the measures.
 
-            Optional parameters :
-            - name : to override the name of the scatter (by default this is the name of the sensor)
-            - minSensor : to specify another sensor to be used as min value for the error on y.
-            - maxSensor : to specify another sensor to be used as max value for the error on y.
-            - yaxis : to override the default y axis
+        Optional parameters :
+        - name : to override the name of the scatter (by default this is the name of the sensor)
+        - minSensor : to specify another sensor to be used as min value for the error on y.
+        - maxSensor : to specify another sensor to be used as max value for the error on y.
+        - yaxis : to override the default y axis
 
-            minSensor and maxSensor, when used, must be used both at the same times and have the same number of value that this sensor. if not they are ignored.
+        minSensor and maxSensor, when used, must be used both at the same times and have the same number of value that this sensor. if not they are ignored.
         '''
         logger.debug('Convert this sensor %s to a scatter', self)
         xt = []
@@ -203,11 +223,11 @@ class sensor:
 
     def toBaseLine(self):
         '''
-            Generate another sensor, that contains the "baseline" for this sensor.
+        Generate another sensor, that contains the "baseline" for this sensor.
 
-            The baseline is computed by using the peakutils module.
+        The baseline is computed by using the peakutils module.
 
-            The string ->Baseline is added to the original clazz to build the clazz of the generated sensor.
+        The string ->Baseline is added to the original clazz to build the clazz of the generated sensor.
         '''
         logger.debug('Generate a new sensor for baseline from %s', self)
         xt = []
@@ -241,12 +261,12 @@ class sensor:
 
     def mergeValueBy(self, functionToMergeTime):
         '''
-            Modify this sensor to merge values by a function.
+        Modify this sensor to merge values by a function.
 
-            All date and times are merged by using the functionToMergeTime and the measures are averaged.
+        All date and times are merged by using the functionToMergeTime and the measures are averaged.
 
-            Mandatory parameters :
-            - functionToMergeTime a function that receive the date and time and return the merged date and time
+        Mandatory parameters :
+        - functionToMergeTime a function that receive the date and time and return the merged date and time
         '''
         logger.debug('Merge value for %s', self)
         tvalues = {}
