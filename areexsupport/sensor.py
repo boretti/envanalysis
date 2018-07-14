@@ -1,7 +1,9 @@
-'''
-Created on 10 juil. 2018
 
-@author: borettim
+# encoding: utf-8
+'''
+Support of a areex sensor.
+
+This module exposes the sensor class.
 '''
 
 import plotly.graph_objs as go
@@ -12,11 +14,37 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+__all__=["sensor"]
 
-class SensorClass:
+class sensor:
     '''
-    This is a class to support a sensor and the associated value.
+    Class defining an areex sensor.
+    
+    This class is an areex sensor, with a name, a unit and datas.
     '''
+    
+    @staticmethod
+    def dateTimeToMinute():
+        '''
+        Method to return a function to normalize datetime to the minute.
+        
+        This method returns a function that strip the second and microsecond of a datetime.
+        '''
+        return lambda d : d.replace(second=0, microsecond=0)
+    
+    @staticmethod
+    def __dateTimeTo5Minute(d):
+        d = sensor.dateTimeToMinute()(d)
+        return d.replace(minute=(d.minute // 5) * 5)
+    
+    @staticmethod
+    def dateTimeTo5Minute():
+        '''
+        Method to return a function to normalize datetime by five minute.
+        
+        This method returns a function that strip the second and microsecond of a datetime and then round to every 5minute.
+        '''
+        return sensor.__dateTimeTo5Minute
 
     @staticmethod
     def sensorIsGroup(groupe):
@@ -34,21 +62,15 @@ class SensorClass:
     def sensorIsUnitAndClazz(unit, clazz):
         return lambda v : v.clazz == clazz and v.unit == unit
 
-    @staticmethod
-    def dateTimeToMinute():
-        return lambda d : d.replace(second=0, microsecond=0)
-
-    @staticmethod
-    def __dateTimeTo5Minute(d):
-        d = SensorClass.dateTimeToMinute()(d)
-        return d.replace(minute=(d.minute // 5) * 5)
-
-    @staticmethod
-    def dateTimeTo5Minute():
-        return SensorClass.__dateTimeTo5Minute
-
     @property
     def values(self):
+        '''
+        Values of this sensor (association between date time and value).
+        
+        This is all the values of the sensors. 
+        
+        The keys are the datetime object and the values are the measures (or computed) numerical value at this time.
+        '''
         return self.__values
 
     @property
@@ -99,7 +121,7 @@ class SensorClass:
         logger.debug('A new sensor has been created - %s', self)
 
     def __eq__(self, other):
-        if isinstance(other, SensorClass):
+        if isinstance(other, sensor):
             return self.name == other.name
         return False
 
@@ -138,12 +160,12 @@ class SensorClass:
             yt.append(v)
         baseline_values = peakutils.baseline(np.asarray(yt))
         values = {xt[dt]:v for dt, v in enumerate(baseline_values)}
-        s = SensorClass(self.__name + ' - baseline', unit=self.__unit, pos='_' + str(self.__pos), val=values, mode='lines', clazz=self.__clazz + '->Baseline', parent=[self], groupe=self.__groupe)
+        s = sensor(self.__name + ' - baseline', unit=self.__unit, pos='_' + str(self.__pos), val=values, mode='lines', clazz=self.__clazz + '->Baseline', parent=[self], groupe=self.__groupe)
         self.__children.append(s)
         return s
 
     def __sub__(self, other):
-        if not isinstance(other, SensorClass):
+        if not isinstance(other, sensor):
             raise ValueError('other must be a SensorClass')
 
         logger.debug('Generate a new sensor for %s (minus) %s', self, other)
@@ -151,7 +173,7 @@ class SensorClass:
         for d, v in self.__values.items():
             if d in other.__values :
                 values[d] = v - other.__values[d]
-        s = SensorClass(self.__name + ' (minus) ' + other.__name, unit=self.__unit, pos='_' + str(self.__pos), val=values, mode=self.__mode, clazz=self.__clazz + '->Minus', parent=[self, other], groupe=self.__groupe)
+        s = sensor(self.__name + ' (minus) ' + other.__name, unit=self.__unit, pos='_' + str(self.__pos), val=values, mode=self.__mode, clazz=self.__clazz + '->Minus', parent=[self, other], groupe=self.__groupe)
         self.__children.append(s)
         other.__children.append(s)
         return s

@@ -5,7 +5,7 @@ Created on 10 juil. 2018
 '''
 import unittest
 
-from areexsupport.Sensor import SensorClass
+from areexsupport.sensor import sensor
 from datetime import datetime
 from pytz import timezone
 
@@ -13,7 +13,7 @@ from pytz import timezone
 class SensorTest(unittest.TestCase):
 
     def testSensorInitOnlyMandataParameter(self):
-        s = SensorClass('name')
+        s = sensor('name')
         self.assertEqual(s.name, 'name', 'Validate name is OK')
         self.assertEqual(s.unit, 'V', 'Validate unit is OK')
         self.assertEqual(s.pos, 1, 'Validate pos is OK')
@@ -25,8 +25,8 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(s.groupe, None, 'Validate group is OK')
 
     def testSensorInitExplicit(self):
-        s1 = SensorClass('name1')
-        s = SensorClass('name', 'RH%', 2, {'x':'y'}, 'y', 'c', [s1], 'g')
+        s1 = sensor('name1')
+        s = sensor('name', 'RH%', 2, {'x':'y'}, 'y', 'c', [s1], 'g')
         self.assertEqual(s.name, 'name', 'Validate name is OK')
         self.assertEqual(s.unit, 'RH%', 'Validate unit is OK')
         self.assertEqual(s.pos, 2, 'Validate pos is OK')
@@ -39,31 +39,31 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(s.groupe, 'g', 'Validate group is OK')
 
     def testSensorIsGroup(self):
-        s1 = SensorClass('name', 'RH%', 2)
-        s2 = SensorClass('name', 'V', 2, groupe='g')
-        self.assertFalse(SensorClass.sensorIsGroup('g')(s1), "Validate that s1 is not g")
-        self.assertTrue(SensorClass.sensorIsGroup('g')(s2), "Validate that s2 is not g")
+        s1 = sensor('name', 'RH%', 2)
+        s2 = sensor('name', 'V', 2, groupe='g')
+        self.assertFalse(sensor.sensorIsGroup('g')(s1), "Validate that s1 is not g")
+        self.assertTrue(sensor.sensorIsGroup('g')(s2), "Validate that s2 is not g")
 
     def testSensorSensorIsUnit(self):
-        s1 = SensorClass('name', 'RH%', 2)
-        s2 = SensorClass('name', 'V', 2)
-        self.assertFalse(SensorClass.sensorIsUnit('V')(s1), "Validate that s1 is not V")
-        self.assertTrue(SensorClass.sensorIsUnit('V')(s2), "Validate that s2 is not V")
+        s1 = sensor('name', 'RH%', 2)
+        s2 = sensor('name', 'V', 2)
+        self.assertFalse(sensor.sensorIsUnit('V')(s1), "Validate that s1 is not V")
+        self.assertTrue(sensor.sensorIsUnit('V')(s2), "Validate that s2 is not V")
 
     def testSensorSensorIsClazz(self):
-        s1 = SensorClass('name', 'RH%', 2, clazz='s')
-        s2 = SensorClass('name', 'V', 2, clazz='t')
-        self.assertFalse(SensorClass.sensorIsClazz('t')(s1), "Validate that s1 is not V")
-        self.assertTrue(SensorClass.sensorIsClazz('t')(s2), "Validate that s2 is not V")
+        s1 = sensor('name', 'RH%', 2, clazz='s')
+        s2 = sensor('name', 'V', 2, clazz='t')
+        self.assertFalse(sensor.sensorIsClazz('t')(s1), "Validate that s1 is not V")
+        self.assertTrue(sensor.sensorIsClazz('t')(s2), "Validate that s2 is not V")
 
     def testSensorIsUnitAndClazz(self):
-        s1 = SensorClass('name', 'RH%', 2)
-        s2 = SensorClass('name', 'V', 2)
-        self.assertFalse(SensorClass.sensorIsUnitAndClazz('V', 'Sensor')(s1), "Validate that s1 is not V")
-        self.assertTrue(SensorClass.sensorIsUnitAndClazz('V', 'Sensor')(s2), "Validate that s2 is not V")
+        s1 = sensor('name', 'RH%', 2)
+        s2 = sensor('name', 'V', 2)
+        self.assertFalse(sensor.sensorIsUnitAndClazz('V', 'Sensor')(s1), "Validate that s1 is not V")
+        self.assertTrue(sensor.sensorIsUnitAndClazz('V', 'Sensor')(s2), "Validate that s2 is not V")
 
     def testSensorDateTimeToMinute(self):
-        m = SensorClass.dateTimeToMinute();
+        m = sensor.dateTimeToMinute();
         d1 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
         d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
         self.assertEqual(m(d1), d1, "Validate that value with s second stay equals")
@@ -71,7 +71,7 @@ class SensorTest(unittest.TestCase):
 
     def testAdd(self):
         d1 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
-        s = SensorClass('name')
+        s = sensor('name')
         self.assertEqual(len(s.values), 0, 'Must be empty')
         s.add(1.0, d1)
         self.assertEqual(len(s.values), 1, 'Must be 0')
@@ -79,15 +79,15 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(s.values[d1], 1.0, "Must be correct value")
 
     def testAddChildren(self):
-        sr = SensorClass('xxx')
-        s = SensorClass('name')
+        sr = sensor('xxx')
+        s = sensor('name')
         self.assertEqual(len(s.children), 0, 'Must be empty')
         s.addChildren(sr)
         self.assertEqual(len(s.children), 1, 'Must be 0')
         self.assertTrue(sr in s.children, "Must contains the sr key")
 
     def testSensorDateTimeTo5Minute(self):
-        m = SensorClass.dateTimeTo5Minute();
+        m = sensor.dateTimeTo5Minute();
         d1 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
         d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
         d3 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
@@ -102,13 +102,13 @@ class SensorTest(unittest.TestCase):
         self.assertEqual(m(d6), d4, "Validate that value with 1m1s second stay equals")
 
     def testMergeValueBy(self):
-        m = SensorClass.dateTimeToMinute();
+        m = sensor.dateTimeToMinute();
         d1 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
         d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
         d3 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
         d4 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
         d5 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:00', '%d.%m.%Y %H:%M:%S'))
-        s = SensorClass('name')
+        s = sensor('name')
         s.add(1.2, d1)
         s.add(1.8, d2)
         s.add(2.4, d3)
@@ -121,7 +121,7 @@ class SensorTest(unittest.TestCase):
         d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
         d3 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
         d4 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-        s = SensorClass('name')
+        s = sensor('name')
         s.add(1.0, d1)
         s.add(2.1, d2)
         s.add(3.1, d3)
@@ -141,12 +141,12 @@ class SensorTest(unittest.TestCase):
         d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
         d3 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
         d4 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-        s1 = SensorClass('name')
+        s1 = sensor('name')
         s1.add(1.0, d1)
         s1.add(2.1, d2)
         s1.add(3.1, d3)
         s1.add(4.1, d4)
-        s2 = SensorClass('name')
+        s2 = sensor('name')
         s2.add(0.5, d1)
         s2.add(1, d2)
         s2.add(5, d3)
@@ -161,7 +161,7 @@ class SensorTest(unittest.TestCase):
         d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
         d3 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
         d4 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
-        s = SensorClass('name')
+        s = sensor('name')
         s.add(1.0, d1)
         s.add(2.1, d2)
         s.add(3.1, d3)
@@ -175,15 +175,15 @@ class SensorTest(unittest.TestCase):
         d1 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
         d2 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
         d3 = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
-        s1 = SensorClass('name')
+        s1 = sensor('name')
         s1.add(1.0, d1)
         s1.add(2.1, d2)
         s1.add(3.1, d3)
-        s2 = SensorClass('name')
+        s2 = sensor('name')
         s2.add(0.5, d1)
         s2.add(1, d2)
         s2.add(3.1, d3)
-        s3 = SensorClass('name')
+        s3 = sensor('name')
         s3.add(6, d1)
         s3.add(8, d2)
         s3.add(5, d3)
@@ -201,9 +201,9 @@ class SensorTest(unittest.TestCase):
         self.assertListEqual(list(sc2.error_y.arrayminus), [0.5, 1.1, 0], "Y min must match")
 
     def testEq(self):
-        s1 = SensorClass('name1')
-        s2 = SensorClass('name2')
-        s3 = SensorClass('name2', unit='RH%')
+        s1 = sensor('name1')
+        s2 = sensor('name2')
+        s3 = sensor('name2', unit='RH%')
         self.assertNotEquals(s1, s2, "S1 must be diff that s2")
         self.assertEquals(s2, s3, "S2 must be eq to s3")
         self.assertNotEquals(s2, s1, "S2 must be diff that s1")
@@ -211,8 +211,8 @@ class SensorTest(unittest.TestCase):
         self.assertNotEquals(s1, 'x', "S1 must be diff that a string")
 
     def testStr(self):
-        s1 = SensorClass('name1')
-        s = SensorClass('name', 'RH%', 2, {'x':'y'}, 'y', 'c', [s1], 'g')
+        s1 = sensor('name1')
+        s = sensor('name', 'RH%', 2, {'x':'y'}, 'y', 'c', [s1], 'g')
         self.assertEquals(str(s), "name:\tunit:RH%\tposition:2\tvalues count:1\tmode:y\tclazz:c\tparent:['name1']\tchildren:[]\tgroupe:g")
 
 

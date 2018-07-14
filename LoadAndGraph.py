@@ -9,8 +9,8 @@ import os
 
 from argparse import ArgumentParser
 from argparse import ArgumentTypeError
-from areexsupport.Sensor import SensorClass
-from areexsupport.SensorData import SensorDataClass
+from areexsupport.sensor import sensor
+from areexsupport.sensors import sensors
 from plotly.offline import plot
 import shutil
 import logging
@@ -61,8 +61,8 @@ def main(argv=None):
 
     else :
         print('Reading from {}'.format(arg.input))
-        data = SensorDataClass(arg.input, SensorClass.dateTimeTo5Minute() if arg.by5min else SensorClass.dateTimeToMinute())
-        data.filterOutSensor(SensorClass.sensorIsUnit('V'))
+        data = sensors(arg.input, sensor.dateTimeTo5Minute() if arg.by5min else sensor.dateTimeToMinute(),lambda n:'Extérieur' if n == 'Extérieur' else 'Intérieur')
+        data.filterOutSensor(sensor.sensorIsUnit('V'))
         print('Storing to cache {}'.format(cachename))
         of = open(cachename, "wb")
         pickle.dump(data, of)
