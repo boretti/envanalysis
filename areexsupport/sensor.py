@@ -14,34 +14,35 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-__all__=["sensor"]
+__all__ = ["sensor"]
+
 
 class sensor:
     '''
     Class defining an areex sensor.
-    
+
     This class is an areex sensor, with a name, a unit and datas.
     '''
-    
+
     @staticmethod
     def dateTimeToMinute():
         '''
         Method to return a function to normalize datetime to the minute.
-        
+
         This method returns a function that strip the second and microsecond of a datetime.
         '''
         return lambda d : d.replace(second=0, microsecond=0)
-    
+
     @staticmethod
     def __dateTimeTo5Minute(d):
         d = sensor.dateTimeToMinute()(d)
         return d.replace(minute=(d.minute // 5) * 5)
-    
+
     @staticmethod
     def dateTimeTo5Minute():
         '''
         Method to return a function to normalize datetime by five minute.
-        
+
         This method returns a function that strip the second and microsecond of a datetime and then round to every 5minute.
         '''
         return sensor.__dateTimeTo5Minute
@@ -66,9 +67,9 @@ class sensor:
     def values(self):
         '''
         Values of this sensor (association between date time and value).
-        
+
         This is all the values of the sensors. 
-        
+
         The keys are the datetime object and the values are the measures (or computed) numerical value at this time.
         '''
         return self.__values

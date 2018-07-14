@@ -61,7 +61,7 @@ def main(argv=None):
 
     else :
         print('Reading from {}'.format(arg.input))
-        data = sensors(arg.input, sensor.dateTimeTo5Minute() if arg.by5min else sensor.dateTimeToMinute(),lambda n:'Extérieur' if n == 'Extérieur' else 'Intérieur')
+        data = sensors(arg.input, sensor.dateTimeTo5Minute() if arg.by5min else sensor.dateTimeToMinute(), lambda n:'Extérieur' if n == 'Extérieur' else 'Intérieur')
         data.filterOutSensor(sensor.sensorIsUnit('V'))
         print('Storing to cache {}'.format(cachename))
         of = open(cachename, "wb")

@@ -15,7 +15,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-__all__=["sensors"]
+__all__ = ["sensors"]
+
 
 class sensors:
     '''
@@ -33,7 +34,7 @@ class sensors:
         second = int(instr[17:19])
         return datetime(year, month, day, hour, minute, second)
 
-    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(),groupFunction=lambda n:'default'):
+    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n:'default'):
         self.__sensors = {}
         sensorByPos = {}
         dtlimit = timezone('Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
