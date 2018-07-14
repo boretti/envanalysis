@@ -47,14 +47,6 @@ class sensor:
         '''
         return sensor.__dateTimeTo5Minute
 
-    @staticmethod
-    def sensorIsUnit(unit):
-        return lambda v: v.unit == unit
-
-    @staticmethod
-    def sensorIsUnitAndClazz(unit, clazz):
-        return lambda v: v.clazz == clazz and v.unit == unit
-
     @property
     def values(self):
         '''

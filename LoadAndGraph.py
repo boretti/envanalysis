@@ -81,6 +81,8 @@ def main(argv=None):
         def groupFunction(
             n): return 'Extérieur' if n == 'Extérieur' else 'Intérieur'
 
+        def filteroutFunction(n): return n.unit == 'V'
+
         def metaFunction(sensorsmap):
             meta = {}
             for n, s in sensorsmap.items():
@@ -97,7 +99,7 @@ def main(argv=None):
             return meta
         print('Reading from {}'.format(arg.input))
         data = sensors(arg.input, mergeFunction, groupFunction,
-                       metaFunction, sensor.sensorIsUnit('V'))
+                       metaFunction, filteroutFunction)
         print('Storing to cache {}'.format(cachename))
         of = open(cachename, "wb")
         pickle.dump(data, of)
@@ -110,23 +112,26 @@ def main(argv=None):
         plot(figure, filename=output, auto_open=False)
 
     if arg.verbose or arg.globalc:
+        def sensorIsUnitAndClazz(unit, clazz):
+            return lambda v: v.clazz == clazz and v.unit == unit
+
         # All temp
         logAndPlot(os.path.join(arg.output, 'Toutes les températures.html'), data.toFigure(
-            sensor.sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures'))
+            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures'))
 
         # All rh
         logAndPlot(os.path.join(arg.output, 'Toutes les humidités.html'), data.toFigure(
-            sensor.sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités'))
+            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités'))
 
         # All temp
         logAndPlot(os.path.join(
             arg.output, 'Toutes les températures - Baseline.html'), data.toFigure(
-            sensor.sensorIsUnitAndClazz('°C', 'Sensor->Baseline'), '°C', 'Toutes les températures - Baseline'))
+            sensorIsUnitAndClazz('°C', 'Sensor->Baseline'), '°C', 'Toutes les températures - Baseline'))
 
         # All rh
         logAndPlot(os.path.join(
             arg.output, 'Toutes les humidité - Baselines.html'), data.toFigure(
-            sensor.sensorIsUnitAndClazz('RH%', 'Sensor->Baseline'), '°C', 'Toutes les humidités - Baseline'))
+            sensorIsUnitAndClazz('RH%', 'Sensor->Baseline'), '°C', 'Toutes les humidités - Baseline'))
 
     if arg.verbose or arg.extvsint:
         # Interieur vs exterieur
@@ -148,7 +153,7 @@ def main(argv=None):
             [external, internalt, internalrh, external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - avec baselines', 'RH%'))
         logAndPlot(os.path.join(
             arg.output, 'Comparaison intérieur vs extérieur - Uniquement baselines.html'), sensors.scattersToFigure(
-            [external, internalt, internalrh, external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - uniquement baselines', 'RH%'))
+            [external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - uniquement baselines', 'RH%'))
 
     if arg.verbose or arg.meta:
         # Generate one file per meta sensor with/without baseline

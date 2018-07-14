@@ -12,6 +12,7 @@ from pytz import timezone
 import statistics
 
 import logging
+from builtins import property
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,10 @@ class sensors:
     def sensors(self):
         return self.__sensors.items()
 
+    @property
+    def groups(self):
+        return self.__groups.keys()
+
     @staticmethod
     def __fastparsedate(instr):
         # '01.01.2017 00:00:00'
@@ -64,7 +69,7 @@ class sensors:
         second = int(instr[17:19])
         return datetime(year, month, day, hour, minute, second)
 
-    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: n, filterOutFunction=None):
+    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: {'def': {k: v for k, v in n.items()}}, filterOutFunction=None):
         self.__sensors = {}
         self.__groups = {}
         sensorByPos = {}
