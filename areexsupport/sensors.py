@@ -99,7 +99,7 @@ class sensors:
                 pt = {d: t.values[d] - (100 - v) / 5 for d,
                       v in rh.values.items() if d in t.values}
                 n = rh.name.replace(' - RH', ' - Point de rosée')
-                s = sensor(n, "°C", -1, pt, 'markers', 'Point de rosée',
+                s = sensor(n, "°C", -1, pt, 'Point de rosée',
                            parent=[rh, t], groupe='Intérieur')
                 rh.addChildren(s)
                 t.addChildren(s)
@@ -130,7 +130,7 @@ class sensors:
                                 "Post processing data : compute distribution for  %s > %s > %s > %s", g, u, c, name)
                             n = '{} - {} [{}] / {}'.format(g, c, u, name)
                             s = sensor(n, u, -1, {d: method(v) for d, v in tvalues.items(
-                            )}, 'markers', c + "->" + name, parent=tsensor, groupe=g)
+                            )},  c + "->" + name, parent=tsensor, groupe=g)
                             for t in tsensor:
                                 t.addChildren(s)
                             self.__sensors[n] = s

@@ -76,22 +76,36 @@ class sensor:
 
     @property
     def name(self):
+        '''
+        Name of this sensor.
+
+        By convention, the name should by unique. This is required by the others class sensors.
+        '''
         return self.__name
 
     @property
     def unit(self):
+        '''
+        Unit of this sensor (°C, RH%, ...).
+        '''
         return self.__unit
 
     @property
     def pos(self):
+        '''
+        Position of the sensor in the source csv.
+
+        Maybe anything when this sensor is computed.
+        '''
         return self.__pos
 
     @property
-    def mode(self):
-        return self.__mode
-
-    @property
     def clazz(self):
+        '''
+        Class of this sensor. This is Sensor by default.
+
+        Computed sensor use this property to set the way this was computed.
+        '''
         return self.__clazz
 
     @property
@@ -109,12 +123,11 @@ class sensor:
     def __iter__(self):
         return iter(self.__values.keys())
 
-    def __init__(self, name, unit='V', pos=1, val=None, mode='lines', clazz='Sensor', parent=None, groupe=None):
+    def __init__(self, name, unit='V', pos=1, val=None, clazz='Sensor', parent=None, groupe=None):
         self.__unit = unit
         self.__name = name
         self.__pos = pos
         self.__values = {} if val == None else val
-        self.__mode = mode
         self.__clazz = clazz
         self.__parent = [] if parent == None else parent
         self.__children = []
@@ -133,9 +146,10 @@ class sensor:
         self.__children.append(c)
 
     def __repr__(self):
-        return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tmode:{}\tclazz:{}\tparent:{}\tchildren:{}\tgroupe:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__mode, self.__clazz, [x.name for x in self.__parent], [x.name for x in self.__children], self.__groupe)
+        return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tclazz:{}\tparent:{}\tchildren:{}\tgroupe:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__clazz, [x.name for x in self.__parent], [x.name for x in self.__children], self.__groupe)
 
     def asScatter(self, name=None, minSensor=None, maxSensor=None, yaxis='y'):
+        logger.debug('Convert this sensor %s to a scatter', self)
         xt = []
         yt = []
         minyt = []
@@ -162,21 +176,21 @@ class sensor:
         baseline_values = peakutils.baseline(np.asarray(yt))
         values = {xt[dt]: v for dt, v in enumerate(baseline_values)}
         s = sensor(self.__name + ' - baseline', unit=self.__unit, pos='_' + str(self.__pos), val=values,
-                   mode='lines', clazz=self.__clazz + '->Baseline', parent=[self], groupe=self.__groupe)
+                   clazz=self.__clazz + '->Baseline', parent=[self], groupe=self.__groupe)
         self.__children.append(s)
         return s
 
     def __sub__(self, other):
+        logger.debug('Generate a new sensor for %s (minus) %s', self, other)
         if not isinstance(other, sensor):
             raise ValueError('other must be a SensorClass')
 
-        logger.debug('Generate a new sensor for %s (minus) %s', self, other)
         values = {}
         for d, v in self.__values.items():
             if d in other.__values:
                 values[d] = v - other.__values[d]
         s = sensor(self.__name + ' (minus) ' + other.__name, unit=self.__unit, pos='_' + str(self.__pos),
-                   val=values, mode=self.__mode, clazz=self.__clazz + '->Minus', parent=[self, other], groupe=self.__groupe)
+                   val=values, clazz=self.__clazz + '->Minus', parent=[self, other], groupe=self.__groupe)
         self.__children.append(s)
         other.__children.append(s)
         return s
