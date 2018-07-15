@@ -228,11 +228,22 @@ class sensors:
                     tsensor, '{} - {} [{}]'.format(g, dewpoint, u), ['computed', 'dewpoint'])
 
     def __repr__(self):
+        metasensorid = {n: p for p, n in enumerate(
+            sorted(self.__metasensors.keys()), 1)}
+
+        maxmetaid = max(map(lambda this: len(str(this)), metasensorid.keys()))
+
+        def formatMetaSensorId(item):
+            return '{} : {}'.format(str(item[0]).ljust(maxmetaid), item[1])
+
+        maxmetaidname = max(map(lambda this: len(
+            formatMetaSensorId(this)), metasensorid.items()))
+
         def grpsForSensor(s):
             return ', '.join(sorted([g[0] for g in self.__groups.items() if s in g[1]]))
 
         def metasForSensor(s):
-            return ', '.join(sorted([g[0] for g in self.__metasensors.items() if s.name in g[1].keys()]))
+            return ', '.join(sorted([str(metasensorid[g[0]]) for g in self.__metasensors.items() if s.name in g[1].keys()]))
 
         def categoriesForSensor(s):
             return ', '.join(s.categories)
@@ -267,8 +278,10 @@ class sensors:
                 lenmaxname), s.unit.ljust(lenmaxunit), str(len(s)).rjust(lenmaxval), s.clazz.ljust(lenmaxclazz), cats.ljust(lenmaxcategories), grps.ljust(lenmaxgroups), metas.ljust(lenmetagroups))
 
         sensors = '\n'.join(map(formatSensor, sorted(self.__sensors.values())))
+        metaids = '\n'.join(
+            map(formatMetaSensorId, sorted(metasensorid.items())))
 
-        return 'All Sensors:\n{}\n{}\n{}\n{}\n{}'.format(bfill, titlestring, fill, sensors, bfill)
+        return 'All Sensors:\n{}\n{}\n{}\n{}\n{}\n\nMeta-Sensors:\n{}\n{}'.format(bfill, titlestring, fill, sensors, bfill, '-' * max(maxmetaidname, 13), metaids)
 
     def sensorsByFunction(self, acceptFunction):
         return [value for value in self.__sensors.values() if acceptFunction(value)]
