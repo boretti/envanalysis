@@ -17,6 +17,12 @@ import logging
 import pickle
 from concurrent.futures.thread import ThreadPoolExecutor
 
+import GraphForGlobal
+import GraphForExtVsInt
+import GraphForAnalyseSousFenetre
+import GraphForMeta
+import GraphForDetail
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,7 +69,9 @@ def main(argv=None):
     parser.add_argument('--global', '-g', dest="globalc",
                         action='store_true', help="generate global chart (-v also generate -g)")
     parser.add_argument('--ext-vs-int', dest="extvsint",
-                        action='store_true', help="generate external vs internal (-v also generate -ext-vs-int)")
+                        action='store_true', help="generate external vs internal (-v also generate --ext-vs-int)")
+    parser.add_argument('--sousfenetre-zone', dest="sousfenetre",
+                        action='store_true', help="generate details regarding the sensor sousfenetre (-v also generate --sousfenetre-zone)")
     parser.add_argument("--threadcount", "-tc", dest="tc", type=int, default=4,
                         help="specify thread number")
     arg = parser.parse_args()
@@ -127,86 +135,36 @@ def main(argv=None):
     plotters = []
 
     if arg.verbose or arg.globalc:
-        def sensorIsUnitAndClazz(unit, clazz):
-            return lambda v: v.clazz == clazz and v.unit == unit
-
-        plotters.append(lambda: logAndPlot(os.path.join(arg.output, 'Toutes les températures.html'), data.toFigure(
-            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures', prune=arg.prune)))
-
-        plotters.append(lambda: logAndPlot(os.path.join(arg.output, 'Toutes les humidités.html'), data.toFigure(
-            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités', prune=arg.prune)))
-
-        plotters.append(lambda: logAndPlot(os.path.join(
-            arg.output, 'Toutes les températures - Baseline.html'), data.toFigure(
-            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures - Baseline', prune=arg.prune, baseline=True)))
-
-        plotters.append(lambda: logAndPlot(os.path.join(
-            arg.output, 'Toutes les humidité - Baselines.html'), data.toFigure(
-            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités - Baseline', prune=arg.prune, baseline=True)))
+        plotters += GraphForGlobal.generateFunctionToPlot(
+            arg.output, data, logAndPlot, arg.prune)
 
     if arg.verbose or arg.extvsint:
-        # Interieur vs exterieur
-        external = data['Extérieur'].asScatter()
-        internalt = data['Intérieur - Sensor [°C]'].asScatter(
-            name='Température intérieur', withError=True)
-        internalrh = data['Intérieur - Sensor [RH%]'].asScatter(
-            name='Humidité intérieur', withError=True, yaxis='y2')
-        external_b = data['Extérieur'].asScatter(
-            prune=arg.prune, baseline=True)
-        internalt_b = data['Intérieur - Sensor [°C]'].asScatter(
-            name='Température intérieur / Baseline', prune=arg.prune, baseline=True)
-        internalrh_b = data['Intérieur - Sensor [RH%]'].asScatter(
-            name='Humidité intérieur / Baseline', prune=arg.prune, baseline=True)
+        plotters += GraphForExtVsInt.generateFunctionToPlot(
+            arg.output, data, logAndPlot, arg.prune)
 
-        def extvsint():
-            logAndPlot(os.path.join(
-                arg.output, 'Comparaison intérieur vs extérieur.html'), sensors.scattersToFigure(
-                [external, internalt, internalrh], '°C', 'Intérieur vs Extérieur', 'RH%'))
-            logAndPlot(os.path.join(
-                arg.output, 'Comparaison intérieur vs extérieur - Baselines.html'), sensors.scattersToFigure(
-                [external, internalt, internalrh, external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - avec baselines', 'RH%'))
-            logAndPlot(os.path.join(
-                arg.output, 'Comparaison intérieur vs extérieur - Uniquement baselines.html'), sensors.scattersToFigure(
-                [external_b, internalt_b, internalrh_b], '°C', 'Intérieur vs Extérieur - uniquement baselines', 'RH%'))
-        plotters.append(extvsint)
+    if arg.verbose or arg.sousfenetre:
+        plotters += GraphForAnalyseSousFenetre.generateFunctionToPlot(
+            arg.output, data, logAndPlot, arg.prune)
 
     if arg.verbose or arg.meta:
-        # Generate one file per meta sensor with/without baseline - working
-        # meta
-
-        def plotIfExist(output, figure):
-            if len(figure['data']) > 0:
-                logAndPlot(output, figure)
-
-        for name, lst in filter(lambda x: ' [' not in x[0], data.metassensors):
-            folder = os.path.join(arg.output, name.translate(
-                str.maketrans('/:\\', '---')))
-            if not os.path.isdir(folder):
-                os.mkdir(folder)
-
-            plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures.html'), data.toFigure(
-                lambda s: s.name in clst and s.clazz == 'Sensor', '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=arg.prune)))
-
-            plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures et calculés.html'), data.toFigure(
-                lambda s: s.name in clst and s.clazz in ('Sensor', 'COMPUTED'), '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=arg.prune)))
-
-            plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures - baselines.html'), data.toFigure(
-                lambda s: s.name in clst and s.clazz == 'Sensor', '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=arg.prune, baseline=True)))
-
-            plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures et calculés - baselines.html'), data.toFigure(
-                lambda s: s.name in clst and s.clazz in ('Sensor', 'COMPUTED'), '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=arg.prune, baseline=True)))
+        plotters += GraphForMeta.generateFunctionToPlot(
+            arg.output, data, logAndPlot, arg.prune)
 
     if arg.verbose or arg.detail:
-        # Generate one file per sensor
-        os.mkdir(os.path.join(arg.output, 'details'))
+        plotters += GraphForDetail.generateFunctionToPlot(
+            arg.output, data, logAndPlot, arg.prune)
 
-        for name, s in data.items():
-
-            plotters.append(lambda cname=name, cs=s: logAndPlot(os.path.join(arg.output, 'details', cname.translate(
-                str.maketrans('/:\\', '---')) + ".html"), sensors.sensorToFigure(cs, cs.name, prune=arg.prune, withBaseline=True)))
+    def decorateForLog(fct):
+        def inner():
+            try:
+                logger.info('Start %s', fct)
+                fct()
+            finally:
+                logger.info('End %s', fct)
+        return inner
 
     with ThreadPoolExecutor(max_workers=arg.tc, thread_name_prefix='plotter') as e:
-        [e.submit(p) for p in plotters]
+        [e.submit(p) for p in map(decorateForLog, plotters)]
 
     logger.info('Processing ended')
 
