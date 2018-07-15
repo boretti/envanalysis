@@ -319,7 +319,7 @@ class sensors:
                 tsensor = self.sensorsByFunctionInGroup(
                     lambda this: this.unit == u and 'dewpoint' in this.categories, g)
                 computeOne(
-                    tsensor, '{} - {} [{}]'.format(g, dewpoint, u), ['computed', 'dewpoint'])
+                    tsensor, '{} - {}'.format(g, dewpoint), ['computed', 'dewpoint'])
 
     def __repr__(self):
         metasensorid = {n: p for p, n in enumerate(
@@ -396,10 +396,12 @@ class sensors:
         return sensors.__tofigureObject([x.asScatter(yaxis=functionYAxis(x), prune=prune, baseline=baseline) for x in self.sensorsByFunction(acceptFunctionOnSensor)], ytitle, title, y2label)
 
     @staticmethod
-    def sensorToFigure(sensor, title=None, prune=False, withBaseline=False):
+    def sensorToFigure(sensor, title=None, prune=False, withBaseline=False, withPeak=False):
         s1 = [sensor.asScatter(prune=prune)]
         if withBaseline:
             s1.append(sensor.asScatter(prune=prune, baseline=True))
+        if withPeak:
+            s1.append(sensor.asScatter(prune=prune, peak=True))
         return sensors.__tofigureObject(s1, sensor.unit, title)
 
     @staticmethod

@@ -129,8 +129,8 @@ class sensor:
             yt.append(v)
             yt2.append(-v)
         indexm1 = peakutils.indexes(
-            np.asarray(yt), thres=0.5, min_dist=30)
-        indexm2 = peakutils.indexes(np.asarray(yt2), thres=0.5, min_dist=30)
+            np.asarray(yt), thres=0.6, min_dist=100)
+        indexm2 = peakutils.indexes(np.asarray(yt2), thres=0.6, min_dist=100)
         result = {}
         for i in indexm1:
             result[xt[i]] = yt[i]
@@ -239,16 +239,16 @@ class sensor:
         return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tclazz:{}\tcategories:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__clazz, self.__categories)
 
     @staticmethod
-    def __asScatterFull(values, name, yaxis='y'):
+    def __asScatterFull(values, name, yaxis='y', mode='lines', dash=None):
         xt = []
         yt = []
         for d, v in sorted(values.items()):
             xt.append(d)
             yt.append(v)
-        return go.Scattergl(x=xt, y=np.asarray(yt), name=name, yaxis=yaxis)
+        return go.Scattergl(x=xt, y=np.asarray(yt), name=name, yaxis=yaxis, mode=mode, line=dict(dash=dash))
 
     @staticmethod
-    def __asScatterPrune(values, name, yaxis='y'):
+    def __asScatterPrune(values, name, yaxis='y', dash=None):
         xt = []
         yt = []
         prevx = None
@@ -296,9 +296,9 @@ class sensor:
                 prevy = v
                 preva = True
                 continue
-        return go.Scattergl(x=xt, y=np.asarray(yt), name=name, yaxis=yaxis)
+        return go.Scattergl(x=xt, y=np.asarray(yt), name=name, yaxis=yaxis, line=dict(dash=dash))
 
-    def asScatter(self, name=None, yaxis='y', prune=False, baseline=False):
+    def asScatter(self, name=None, yaxis='y', prune=False, baseline=False, peak=False):
         '''
         Generate a scatter (from plotly) for this sensor.
 
@@ -307,15 +307,19 @@ class sensor:
         Optional parameters :
         - name : to override the name of the scatter (by default this is the name of the sensor)
         - yaxis : to override the default y axis
-        - prune : if set to True, this will prune the generated scatter (not applicable for min/max variante), by removing successive identical y values
+        - prune : if set to True, this will prune the generated scatter (not applicable for peak), by removing successive identical y values
         - baseline : if set to True, this will use the baseline
+        - peak : if set to True, this will return the peaks (even if baseline is set to True)
 
         '''
         logger.debug('Convert this sensor %s to a scatter', self)
-        val = self.__blvalues if baseline else self.__values
-        nname = (
-            self.__name + " - Baseline" if baseline else self.__name) if name == None else name
-        return self.__asScatterPrune(val, nname, yaxis) if prune else self.__asScatterFull(val, nname, yaxis)
+        val = self.peaks if peak else (
+            self.__blvalues if baseline else self.__values)
+        nname = (self.__name + " - Peak" if peak else (
+            self.__name + " - Baseline" if baseline else self.__name)) if name == None else name
+        if prune and not peak:
+            return self.__asScatterPrune(val, nname, yaxis, dash='dash' if baseline else None)
+        return self.__asScatterFull(val, nname, yaxis, mode='markers' if peak else 'lines', dash='dash' if baseline else None)
 
     @staticmethod
     def __toBaseLine(values):

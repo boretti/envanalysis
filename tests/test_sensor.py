@@ -185,6 +185,26 @@ def testPeak():
     assert s.peaks == {d4: 4.1}
 
 
+def testAsScatterPeak():
+    d1 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
+    d2 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
+    d3 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
+    d4 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
+    d5 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:02:01', '%d.%m.%Y %H:%M:%S'))
+    s = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1, d5: -10})
+    sc1 = s.asScatter(peak=True)
+    assert list(sc1.x) == [d4]
+    assert list(sc1.y) == [4.1]
+    assert sc1.name == "name - Peak"
+    assert sc1.yaxis == "y"
+    assert sc1.mode == 'markers'
+
+
 def testAsScatterNoPrune():
     d1 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
