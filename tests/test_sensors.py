@@ -72,7 +72,7 @@ def testSensorsInitOnlyMandataParameter(simpleinput):
     assert 'Maquette Partie Haute - V' in d.keys()
     assert len(d.groups) == 1
     assert 'default' in d.groups
-    assert len(d) == 18
+    assert len(d) == 5
     assert len(d['Extérieur'].values) == 6
     assert d['Extérieur'][d1] == 25.2
     assert d['Extérieur'][d2] == 25.2

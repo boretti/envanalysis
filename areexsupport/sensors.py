@@ -9,6 +9,9 @@ This module only exposes one single class : sensors ; Just use `from areexsuppor
 '''
 
 from areexsupport.sensor import sensor
+from areexsupport.computed_sensor import computed_sensor
+from areexsupport.virtual_sensor import virtual_sensor
+
 from datetime import datetime, timezone
 import statistics
 
@@ -157,8 +160,6 @@ class sensors:
         self.__computePointRosee()
         logger.info("Post processing data : computing distribution")
         self.__computeDistribution()
-        logger.info("Post processing data : computing baseline")
-        self.__computeBaseLine()
 
     def __computePointRosee(self):
         for msn, ms in list(self.__metasensors.items()):
@@ -180,7 +181,7 @@ class sensors:
             pt = {d: t.values[d] - (100 - v) / 5 for d,
                   v in rh.values.items() if d in t.values}
             n = msn + ' - Point de rosée'
-            s = sensor(n, "°C", -1, pt, 'Point de rosée')
+            s = computed_sensor(n, pt, "°C")
             self.__sensors[n] = s
             self.__metasensors[msn][n] = s
             for g in gs:
@@ -200,43 +201,17 @@ class sensors:
                             "Post processing data : compute distribution for  %s > %s > %s", g, u, c)
                         if g not in self.__metasensors:
                             self.__metasensors[g] = {}
-                        tvalues = {}
-                        for sn in tsensor:
-                            for dt, v in sn.values.items():
-                                if(dt not in tvalues):
-                                    tvalues[dt] = []
-                                tvalues[dt].append(v)
-                        target = {'p-Variance': statistics.pvariance, 'Mean': statistics.mean,
-                                  'Median': statistics.median, 'Min': min, 'Max': max}
                         mn = '{} - {} [{}]'.format(g, c, u)
+                        ds = virtual_sensor(mn, tsensor)
+
                         self.__metasensors[mn] = {s.name: s for s in tsensor}
                         for s in tsensor:
                             self.__metasensors[g][s.name] = s
-                        for name, method in target.items():
-                            logger.info(
-                                "Post processing data : compute distribution for  %s > %s > %s > %s", g, u, c, name)
-                            n = '{} - {} [{}] / {}'.format(g, c, u, name)
-                            s = sensor(n, u, -1, {d: method(v) for d, v in tvalues.items(
-                            )},  c + "->" + name)
-                            self.__groups[g].append(s)
-                            self.__sensors[n] = s
-                            self.__metasensors[mn][n] = s
-                            self.__metasensors[g][n] = s
 
-    def __computeBaseLine(self):
-        for g, v in list(self.__groups.items()):
-            logger.info(
-                "Post processing data : compute baseline for group %s", g)
-            for sn in list(v):
-                logger.info(
-                    "Post processing data : compute baseline for sensor %s", sn.name)
-                s = sn.toBaseLine()
-                self.__sensors[s.name] = s
-                self.__groups[g].append(s)
-                mn = [mn for mn, v in self.__metasensors.items()
-                      if sn in v.values()]
-                for m in mn:
-                    self.__metasensors[m][s.name] = s
+                        self.__groups[g].append(ds)
+                        self.__sensors[mn] = ds
+                        self.__metasensors[mn][mn] = ds
+                        self.__metasensors[g][mn] = ds
 
     def __repr__(self):
         def allsensors():
@@ -256,12 +231,15 @@ class sensors:
     def sensorsByFunctionInGroup(self, acceptFunction, group):
         return [value for value in self.__groups[group] if acceptFunction(value)]
 
-    def toFigure(self, acceptFunctionOnSensor, ytitle, title=None, y2label=None, functionYAxis=lambda n: 'y'):
-        return sensors.__tofigureObject([x.asScatter(yaxis=functionYAxis(x)) for x in self.sensorsByFunction(acceptFunctionOnSensor)], ytitle, title, y2label)
+    def toFigure(self, acceptFunctionOnSensor, ytitle, title=None, y2label=None, functionYAxis=lambda n: 'y', prune=False, baseline=False):
+        return sensors.__tofigureObject([x.asScatter(yaxis=functionYAxis(x), prune=prune, baseline=baseline) for x in self.sensorsByFunction(acceptFunctionOnSensor)], ytitle, title, y2label)
 
     @staticmethod
-    def sensorToFigure(sensor, title=None):
-        return sensors.__tofigureObject([sensor.asScatter()], sensor.unit, title)
+    def sensorToFigure(sensor, title=None, prune=False, withBaseline=False):
+        s1 = [sensor.asScatter(prune=prune)]
+        if withBaseline:
+            s1.append(sensor.asScatter(prune=prune, baseline=True))
+        return sensors.__tofigureObject(s1, sensor.unit, title)
 
     @staticmethod
     def scattersToFigure(scatters, ytitle, title=None, y2label=None):

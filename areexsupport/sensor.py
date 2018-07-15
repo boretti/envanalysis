@@ -13,6 +13,7 @@ import peakutils
 import numpy as np
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 __all__ = ["sensor"]
@@ -127,6 +128,7 @@ class sensor:
         self.__name = name
         self.__pos = pos
         self.__values = {} if val == None else val
+        self.__blvalues = {} if val == None else sensor.__toBaseLine(val)
         self.__clazz = clazz
 
         logger.debug('A new sensor has been created - %s', self)
@@ -184,11 +186,72 @@ class sensor:
         This method is used by the framework itself.
         '''
         self.__values = values
+        self.__blvalues = sensor.__toBaseLine(values)
 
     def __repr__(self):
         return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tclazz:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__clazz)
 
-    def asScatter(self, name=None, minSensor=None, maxSensor=None, yaxis='y'):
+    @staticmethod
+    def __asScatterFull(values, name, yaxis='y'):
+        xt = []
+        yt = []
+        for d, v in sorted(values.items()):
+            xt.append(d)
+            yt.append(v)
+        return go.Scattergl(x=xt, y=np.asarray(yt), name=name, yaxis=yaxis)
+
+    @staticmethod
+    def __asScatterPrune(values, name, yaxis='y'):
+        xt = []
+        yt = []
+        prevx = None
+        prevy = None
+        preva = None
+        entries = sorted(values.items())
+        for d, v in entries:
+            if d == entries[0][0]:
+                xt.append(d)
+                yt.append(v)
+                prevx = d
+                prevy = v
+                preva = True
+                continue
+            if preva and (v != prevy or d == entries[-1][0]):
+                xt.append(d)
+                yt.append(v)
+                prevx = d
+                prevy = v
+                preva = True
+                continue
+            if preva and v == prevy:
+                prevx = d
+                prevy = v
+                preva = False
+                continue
+            if not preva and (v == prevy and d != entries[-1][0]):
+                prevx = d
+                prevy = v
+                preva = False
+                continue
+            if not preva and (v == prevy and d == entries[-1][0]):
+                xt.append(d)
+                yt.append(v)
+                prevx = d
+                prevy = v
+                preva = True
+                continue
+            if not preva and v != prevy:
+                xt.append(prevx)
+                yt.append(prevy)
+                xt.append(d)
+                yt.append(v)
+                prevx = d
+                prevy = v
+                preva = True
+                continue
+        return go.Scattergl(x=xt, y=np.asarray(yt), name=name, yaxis=yaxis)
+
+    def asScatter(self, name=None, yaxis='y', prune=False, baseline=False):
         '''
         Generate a scatter (from plotly) for this sensor.
 
@@ -196,48 +259,26 @@ class sensor:
 
         Optional parameters :
         - name : to override the name of the scatter (by default this is the name of the sensor)
-        - minSensor : to specify another sensor to be used as min value for the error on y.
-        - maxSensor : to specify another sensor to be used as max value for the error on y.
         - yaxis : to override the default y axis
+        - prune : if set to True, this will prune the generated scatter (not applicable for min/max variante), by removing successive identical y values
+        - baseline : if set to True, this will use the baseline
 
-        minSensor and maxSensor, when used, must be used both at the same times and have the same number of value that this sensor. if not they are ignored.
         '''
         logger.debug('Convert this sensor %s to a scatter', self)
+        val = self.__blvalues if baseline else self.__values
+        nname = (
+            self.__name + " - Baseline" if baseline else self.__name) if name == None else name
+        return self.__asScatterPrune(val, nname, yaxis) if prune else self.__asScatterFull(val, nname, yaxis)
+
+    @staticmethod
+    def __toBaseLine(values):
         xt = []
         yt = []
-        minyt = []
-        maxyt = []
-        for d, v in sorted(self.__values.items()):
-            xt.append(d)
-            yt.append(v)
-            if minSensor != None:
-                minyt.append(v - minSensor.__values[d])
-            if maxSensor != None:
-                maxyt.append(maxSensor.__values[d] - v)
-        if (len(xt) == len(minyt) and len(xt) == len(maxyt)):
-            return go.Scattergl(x=xt, y=np.asarray(yt), name=self.__name if name == None else name, error_y=dict(type='data', symmetric=False, array=np.asarray(maxyt), arrayminus=np.asarray(minyt)), yaxis=yaxis)
-        else:
-            return go.Scattergl(x=xt, y=np.asarray(yt), name=self.__name if name == None else name, yaxis=yaxis)
-
-    def toBaseLine(self):
-        '''
-        Generate another sensor, that contains the "baseline" for this sensor.
-
-        The baseline is computed by using the peakutils module.
-
-        The string ->Baseline is added to the original clazz to build the clazz of the generated sensor.
-        '''
-        logger.debug('Generate a new sensor for baseline from %s', self)
-        xt = []
-        yt = []
-        for d, v in sorted(self.__values.items()):
+        for d, v in sorted(values.items()):
             xt.append(d)
             yt.append(v)
         baseline_values = peakutils.baseline(np.asarray(yt))
-        values = {xt[dt]: v for dt, v in enumerate(baseline_values)}
-        s = sensor(self.__name + ' - baseline', unit=self.__unit, pos='_' + str(self.__pos), val=values,
-                   clazz=self.__clazz + '->Baseline')
-        return s
+        return {xt[dt]: v for dt, v in enumerate(baseline_values)}
 
     def __sub__(self, other):
         '''
