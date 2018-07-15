@@ -104,7 +104,7 @@ class sensors:
     @staticmethod
     def fastparsedate(instr):
         '''
-        Convert a date formated 01.01.2017 00:00:00 - dd.mm.yyyy HH:MM:SS to a datetime. 
+        Convert a date formated 01.01.2017 00:00:00 - dd.mm.yyyy HH:MM:SS to a datetime.
 
         This implementation is not generic, but faster
 
@@ -128,18 +128,18 @@ class sensors:
         - filename : the path to the source file (pseudo-csv format from areex)
 
         Optional parameters :
-        - mergeFunction : A function that receive a date time and compute a merged date time. 
-            By default, if omitted, a function that merge date by minute is used. 
+        - mergeFunction : A function that receive a date time and compute a merged date time.
+            By default, if omitted, a function that merge date by minute is used.
             In case a sensor has several value for the merged time, they are averaged.
-        - groupFunction : A function to compute the group of a sensor. This function receive the sensor name and must return the group name. 
-            By default, if omitted, all sensor are added to the default group. 
+        - groupFunction : A function to compute the group of a sensor. This function receive the sensor name and must return the group name.
+            By default, if omitted, all sensor are added to the default group.
             * See below for informations about group
-        - metaFunction : A function that compute meta sensor. This function receive array of tuple of the sensor [(name1, sensor1), ...] and return the structured meta sensor {m1:{n1:s1,...},...}. 
-            By default, if omitted, all sensors are added to the meta sensor def. 
+        - metaFunction : A function that compute meta sensor. This function receive array of tuple of the sensor [(name1, sensor1), ...] and return the structured meta sensor {m1:{n1:s1,...},...}.
+            By default, if omitted, all sensors are added to the meta sensor def.
             * See below for informations about meta-sensors
         - filterOutFunction : A function to filter out (remove sensor when returning true) sensors. This function receive the sensor and must return a boolean.
             By default, no sensor are removed.
-        - categoriesFunction : A function to compute optional categories of sensors. This function receive the sensor name and must return an array of string (or None). 
+        - categoriesFunction : A function to compute optional categories of sensors. This function receive the sensor name and must return an array of string (or None).
             By default, no categories are added
             * See below for informations about categories
         - dewpoint : text to be used when creating devpoint sensor - By default, this is Point de rosée.
@@ -151,7 +151,7 @@ class sensors:
 
         Meta-Sensors :
          Meta-sensors are used to define a set that are the same (for instance a sensor computing °C and %RH).
-         If a meta-sensors contains one sensor that is °C and one sensore that is %RH (ignoring the others), the dewpoint will be computed 
+         If a meta-sensors contains one sensor that is °C and one sensore that is %RH (ignoring the others), the dewpoint will be computed
 
         Categories :
          Categories are marker on the sensors it self. They are also used to create additional groups.
