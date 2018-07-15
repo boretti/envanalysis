@@ -5,7 +5,7 @@ Support of a sensor that has been calculated (like point de rosee).
 
 This module exposes the computed_sensor class.
 
-This module only exposes one single class : computed_sensor ; Just use `from areexsupport.computed_sensor import computed_sensor` to use it
+This module only exposes one single class : virtual_sensor ; Just use `from areexsupport.virtual_sensor import virtual_sensor` to use it
 '''
 
 import logging
@@ -13,10 +13,10 @@ from areexsupport.sensor import sensor
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["computed_sensor"]
+__all__ = ["virtual_sensor"]
 
 
-class computed_sensor(sensor):
+class virtual_sensor(sensor):
     '''
     Class defining a computed sensor.
 

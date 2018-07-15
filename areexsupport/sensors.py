@@ -9,7 +9,7 @@ This module only exposes one single class : sensors ; Just use `from areexsuppor
 '''
 
 from areexsupport.sensor import sensor
-from areexsupport.computed_sensor import computed_sensor
+from areexsupport.virtual_sensor import virtual_sensor
 from areexsupport.aggregated_sensor import aggregated_sensor
 
 from datetime import datetime, timezone
@@ -192,7 +192,7 @@ class sensors:
             pt = {d: t.values[d] - (100 - v) / 5 for d,
                   v in rh.values.items() if d in t.values}
             n = msn + ' - Point de rosée'
-            s = computed_sensor(n, pt, "°C", ['pdr'])
+            s = virtual_sensor(n, pt, "°C", ['pdr'])
             self.__sensors[n] = s
             self.__metasensors[msn][n] = s
             for g in gs:
