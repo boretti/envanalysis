@@ -10,7 +10,7 @@ This module only exposes one single class : sensors ; Just use `from areexsuppor
 
 from areexsupport.sensor import sensor
 from areexsupport.computed_sensor import computed_sensor
-from areexsupport.virtual_sensor import virtual_sensor
+from areexsupport.aggregated_sensor import aggregated_sensor
 
 from datetime import datetime, timezone
 import numpy as np
@@ -209,7 +209,7 @@ class sensors:
                             "Post processing data : compute distribution for  %s > %s : %s", g, u, [t.name for t in tsensor])
                         if g not in self.__metasensors:
                             self.__metasensors[g] = {}
-                        ds = virtual_sensor(mn, tsensor, categories)
+                        ds = aggregated_sensor(mn, tsensor, categories)
 
                         self.__metasensors[mn] = {s.name: s for s in tsensor}
                         for s in tsensor:

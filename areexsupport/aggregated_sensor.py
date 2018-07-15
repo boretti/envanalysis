@@ -3,9 +3,9 @@
 '''
 Support of a sensor which is virtual, meaning it aggregate value from several sensors.
 
-This module exposes the virtual_sensor class.
+This module exposes the aggregated_sensor class.
 
-This module only exposes one single class : virtual_sensor ; Just use `from areexsupport.virtual_sensor import virtual_sensor` to use it
+This module only exposes one single class : virtual_sensor ; Just use `from areexsupport.aggregated_sensor import aggregated_sensor` to use it
 '''
 
 import logging
@@ -16,10 +16,10 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["virtual_sensor"]
+__all__ = ["aggregated_sensor"]
 
 
-class virtual_sensor(sensor):
+class aggregated_sensor(sensor):
     '''
     Class defining a virtual sensor, meaning it aggregate value from several sensors.
 
@@ -92,4 +92,4 @@ class virtual_sensor(sensor):
         - prune : if set to True, this will prune the generated scatter (not applicable for min/max variante), by removing successive identical y values
 
         '''
-        return virtual_sensor.__asScatterError(self.values, self.name if name == None else name, self.__minValues, self.__maxValues, yaxis)
+        return aggregated_sensor.__asScatterError(self.values, self.name if name == None else name, self.__minValues, self.__maxValues, yaxis)
