@@ -171,13 +171,13 @@ def main(argv=None):
         plotters.append(extvsint)
 
     if arg.verbose or arg.meta:
-        # Generate one file per meta sensor with/without baseline
+        # Generate one file per meta sensor with/without baseline - working meta
 
         def plotIfExist(output, figure):
             if len(figure['data']) > 0:
                 logAndPlot(output, figure)
 
-        for name, lst in data.metassensors:
+        for name, lst in filter(lambda x:' [' not in x[0],data.metassensors):
             folder = os.path.join(arg.output, name.translate(
                 str.maketrans('/:\\', '---')))
             if not os.path.isdir(folder):
