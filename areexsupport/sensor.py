@@ -113,16 +113,16 @@ class sensor:
 
     def __init__(self, name, unit='V', pos=1, val=None, clazz='Sensor'):
         '''
-            Initialize this sensor.
+        Initialize this sensor.
 
-            Mandatory parameters :
-            - name : This is the name of this sensor and it should be unique.
+        Mandatory parameters :
+        - name : This is the name of this sensor and it should be unique.
 
-            Optional parameters :
-            - unit : This is the unit of this sensor (by default V), others classical value are °C and RH%.
-            - pos : This is the position of this sensor in the pseudo csv from areex.
-            - val : Initial values for this sensor. By default none
-            - clazz : This is the clazz of this sensor. By default a real sensor is Sensor.
+        Optional parameters :
+        - unit : This is the unit of this sensor (by default V), others classical value are °C and RH%.
+        - pos : This is the position of this sensor in the pseudo csv from areex.
+        - val : Initial values for this sensor. By default none
+        - clazz : This is the clazz of this sensor. By default a real sensor is Sensor.
         '''
         self.__unit = unit
         self.__name = name
