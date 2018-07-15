@@ -228,34 +228,47 @@ class sensors:
                     tsensor, '{} - {} [{}]'.format(g, dewpoint, u), ['computed', 'dewpoint'])
 
     def __repr__(self):
-        lenmaxname = max(map(lambda this: len(
-            this.name), self.__sensors.values()))
-        lenmaxclazz = max(map(lambda this: len(
-            this.clazz), self.__sensors.values()))
-        lenmaxcategories = max(map(lambda this: len(
-            str(this.categories)), self.__sensors.values()))
+        def grpsForSensor(s):
+            return ', '.join(sorted([g[0] for g in self.__groups.items() if s in g[1]]))
 
-        titlestring = '{} | {} | {} | {} | {} | {}'.format('Name'.ljust(
-            lenmaxname + 4), 'Unit'.ljust(10), 'Position'.ljust(10), 'Values count'.ljust(20), 'Clazz'.ljust(lenmaxclazz + 4), 'Categories'.ljust(lenmaxcategories + 10))
+        def metasForSensor(s):
+            return ', '.join(sorted([g[0] for g in self.__metasensors.items() if s.name in g[1].keys()]))
+
+        def categoriesForSensor(s):
+            return ', '.join(s.categories)
+
+        lenmaxname = max(max(map(lambda this: len(
+            this.name), self.__sensors.values())), 4)
+        lenmaxunit = max(max(map(lambda this: len(
+            this.unit), self.__sensors.values())), 4)
+        lenmaxval = max(max(map(lambda this: len(str(len(
+            this))), self.__sensors.values())), 7)
+        lenmaxclazz = max(max(map(lambda this: len(
+            this.clazz), self.__sensors.values())), 5)
+        lenmaxcategories = max(max(map(lambda this: len(
+            categoriesForSensor(this)), self.__sensors.values())), 10)
+        lenmaxgroups = max(max(map(lambda this: len(
+            grpsForSensor(this)), self.__sensors.values())), 5)
+        lenmetagroups = max(max(map(lambda this: len(
+            metasForSensor(this)), self.__sensors.values())), 12)
+
+        titlestring = '| {} | {} | {} | {} | {} | {} | {} |'.format('Name'.ljust(
+            lenmaxname), 'Unit'.ljust(lenmaxunit), '#Values'.rjust(lenmaxval), 'Clazz'.ljust(lenmaxclazz), 'Categories'.ljust(lenmaxcategories), 'Group'.ljust(lenmaxgroups), 'Meta-sensors'.ljust(lenmetagroups))
+        fill = '|-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-|'.format('-' *
+                                                             lenmaxname, '-' * lenmaxunit, '-' * lenmaxval,  '-' * lenmaxclazz, '-' * lenmaxcategories, '-' * lenmaxgroups, '-' * lenmetagroups)
+        bfill = '+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+'.format('-' *
+                                                              lenmaxname, '-' * lenmaxunit, '-' * lenmaxval,  '-' * lenmaxclazz, '-' * lenmaxcategories, '-' * lenmaxgroups, '-' * lenmetagroups)
 
         def formatSensor(s):
-            return '{} | {} | {} | {} | {} | {}'.format(s.name.ljust(
-                lenmaxname + 4), s.unit.ljust(10), str(s.pos).ljust(10), str(len(s)).ljust(20), s.clazz.ljust(lenmaxclazz + 4), str(s.categories).ljust(lenmaxcategories + 10))
-
-        def formatGroup(g):
-            return '{} : {}'.format(g[0], '; '.join(map(lambda this: this.name, sorted(g[1]))))
-
-        def formatMeta(m):
-            return '{} : {}'.format(m[0], '; '.join(m[1]))
+            grps = grpsForSensor(s)
+            metas = metasForSensor(s)
+            cats = categoriesForSensor(s)
+            return '| {} | {} | {} | {} | {} | {} | {} |'.format(s.name.ljust(
+                lenmaxname), s.unit.ljust(lenmaxunit), str(len(s)).rjust(lenmaxval), s.clazz.ljust(lenmaxclazz), cats.ljust(lenmaxcategories), grps.ljust(lenmaxgroups), metas.ljust(lenmetagroups))
 
         sensors = '\n'.join(map(formatSensor, sorted(self.__sensors.values())))
 
-        groups = '\n\t'.join(map(formatGroup, sorted(self.__groups.items())))
-
-        metas = '\n\t'.join(
-            map(formatMeta, sorted(self.__metasensors.items())))
-
-        return 'All Sensors:\n{}\n{}\n{}\n\nGroups\n\t{}\n\nMeta-Sensors\n\n\t{}'.format(titlestring, '-' * len(titlestring), sensors, groups, metas)
+        return 'All Sensors:\n{}\n{}\n{}\n{}\n{}'.format(bfill, titlestring, fill, sensors, bfill)
 
     def sensorsByFunction(self, acceptFunction):
         return [value for value in self.__sensors.values() if acceptFunction(value)]
