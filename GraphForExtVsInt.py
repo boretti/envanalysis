@@ -10,7 +10,9 @@ from areexsupport.sensors import sensors
 
 
 def generateFunctionToPlot(bsefolder, data, functionToPlot, prune):
-    os.mkdir(os.path.join(bsefolder, 'comparaisons'))
+    if not os.path.isdir(os.path.join(bsefolder, 'comparaisons')):
+        os.mkdir(os.path.join(bsefolder, 'comparaisons'))
+
     external = data['Extérieur'].asScatter()
     internalt = data['Intérieur [°C]'].asScatterWithError(
         name='Température intérieur')

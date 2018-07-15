@@ -21,6 +21,7 @@ import GraphForExtVsInt
 import GraphForAnalyseSousFenetre
 import GraphForMeta
 import GraphForDetail
+import GraphForAltVsInt
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,8 @@ def main(argv=None):
                         action='store_true', help="generate global chart (-v also generate -g)")
     parser.add_argument('--ext-vs-int', dest="extvsint",
                         action='store_true', help="generate external vs internal (-v also generate --ext-vs-int)")
+    parser.add_argument('--atl-vs-int', dest="atlvsint",
+                        action='store_true', help="generate atelier vs other internal part (-v also generate --alt-vs-int)")
     parser.add_argument('--sousfenetre-zone', dest="sousfenetre",
                         action='store_true', help="generate details regarding the sensor sousfenetre (-v also generate --sousfenetre-zone)")
     parser.add_argument("--threadcount", "-tc", dest="tc", type=int, default=4,
@@ -128,6 +131,10 @@ def main(argv=None):
 
     if arg.verbose or arg.extvsint:
         plotters += GraphForExtVsInt.generateFunctionToPlot(
+            arg.output, data, logAndPlot, arg.prune)
+
+    if arg.verbose or arg.atlvsint:
+        plotters += GraphForAltVsInt.generateFunctionToPlot(
             arg.output, data, logAndPlot, arg.prune)
 
     if arg.verbose or arg.sousfenetre:
