@@ -29,7 +29,7 @@ def simpleinput(tmpdir_factory):
         4    Extérieur    °C
         
         Start date: 14.07.2018
-        End date: 14.07.2018
+        End date: 15.07.2018
         
         Time    1    2    3    4
         14.07.2018 00:00:39     3.2        23.4    
@@ -66,6 +66,12 @@ def testSensorsInitOnlyMandataParameter(simpleinput):
     d5 = sensors.fastparsedate('14.07.2018 00:04:00')
     d6 = sensors.fastparsedate('14.07.2018 00:05:00')
     d7 = sensors.fastparsedate('14.07.2018 00:06:00')
+
+    dn = sensors.fastparsedate('15.07.2018 23:59:59')
+
+    assert d.starttime == d1
+    assert d.endtime == dn
+
     assert 'Extérieur' in d.keys()
     assert 'Maquette Partie Haute - RH' in d.keys()
     assert 'Maquette Partie Haute - T' in d.keys()
@@ -80,3 +86,15 @@ def testSensorsInitOnlyMandataParameter(simpleinput):
     assert d['Extérieur'][d4] == 25.2
     assert d['Extérieur'][d5] == 25.1
     assert d['Extérieur'][d7] == 25.2
+
+def testSensorsInitWithFilterOutFunction(simpleinput):
+    d = sensors(simpleinput,filterOutFunction=lambda this:this.name=='Extérieur')
+
+    assert 'Extérieur' not in d.keys()
+    assert 'Maquette Partie Haute - RH' in d.keys()
+    assert 'Maquette Partie Haute - T' in d.keys()
+    assert 'Maquette Partie Haute - V' in d.keys()
+    assert len(d.groups) == 1
+    assert 'default' in d.groups
+    assert len(d) == 4
+

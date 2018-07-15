@@ -144,6 +144,32 @@ def testLen():
     assert len(s) == 4
 
 
+def testRange():
+    d1 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
+    d2 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
+    d3 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
+    d4 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
+    s = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1})
+    assert s.range == '1.0 to 4.1'
+
+
+def testPeriod():
+    d1 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
+    d2 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
+    d3 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
+    d4 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
+    s = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1})
+    assert s.period == '2017-01-01 00:00:00 to 2017-01-01 00:01:01'
+
+
 def testAsScatterNoPrune():
     d1 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))

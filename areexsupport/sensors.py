@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 import logging
+from builtins import property
 
 logger = logging.getLogger(__name__)
 
@@ -70,10 +71,6 @@ class sensors:
         return self.__metasensors.items()
 
     @property
-    def groupsensors(self):
-        return self.__metasensors.items()
-
-    @property
     def sensors(self):
         return self.__sensors.items()
 
@@ -81,8 +78,28 @@ class sensors:
     def groups(self):
         return self.__groups.keys()
 
+    @property
+    def starttime(self):
+        return self.__starttime
+
+    @property
+    def endtime(self):
+        return self.__endtime
+
+    @property
+    def source(self):
+        return self.__source
+
     @staticmethod
     def fastparsedate(instr):
+        '''
+        Convert a date formated 01.01.2017 00:00:00 - dd.mm.yyyy HH:MM:SS to a datetime. 
+
+        This implementation is not generic, but faster
+
+        Parameter :
+        - instr : the string to be converted.
+        '''
         # '01.01.2017 00:00:00'
         day = int(instr[0:2])
         month = int(instr[3:5])
@@ -93,20 +110,77 @@ class sensors:
         return datetime(year, month, day, hour, minute, second, 0, timezone.utc)
 
     def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: {'def': {k: v for k, v in n.items()}}, filterOutFunction=None, categoriesFunction=lambda n: None, dewpoint='Point de rosée'):
+        '''
+        Create an instance of sensors.
+
+        Mandatory parameters :
+        - filename : the path to the source file (pseudo-csv format from areex)
+
+        Optional parameters :
+        - mergeFunction : A function that receive a date time and compute a merged date time. 
+            By default, if omitted, a function that merge date by minute is used. 
+            In case a sensor has several value for the merged time, they are averaged.
+        - groupFunction : A function to compute the group of a sensor. This function receive the sensor name and must return the group name. 
+            By default, if omitted, all sensor are added to the default group. 
+            * See below for informations about group
+        - metaFunction : A function that compute meta sensor. This function receive array of tuple of the sensor [(name1, sensor1), ...] and return the structured meta sensor {m1:{n1:s1,...},...}. 
+            By default, if omitted, all sensors are added to the meta sensor def. 
+            * See below for informations about meta-sensors
+        - filterOutFunction : A function to filter out (remove sensor when returning true) sensors. This function receive the sensor and must return a boolean.
+            By default, no sensor are removed.
+        - categoriesFunction : A function to compute optional categories of sensors. This function receive the sensor name and must return an array of string (or None). 
+            By default, no categories are added
+            * See below for informations about categories
+        - dewpoint : text to be used when creating devpoint sensor - By default, this is Point de rosée.
+
+        Groups :
+         Groups are used to define are sensors are part of a logical set of sensors. Virtual aggregated sensors will be computed for each group:
+         - One for (each unit and physical sensor) - Assuming there are at least 2 sensors of this type
+         - One for all dewpoint - Assuming there are at least 2 sensors of this type
+
+        Meta-Sensors :
+         Meta-sensors are used to define a set that are the same (for instance a sensor computing °C and %RH).
+         If a meta-sensors contains one sensor that is °C and one sensore that is %RH (ignoring the others), the dewpoint will be computed 
+
+        Categories :
+         Categories are marker on the sensors it self. They are also used to create additional groups.
+
+        Processing order :
+        - The file is readed. Each sensor is categorized by using categoriesFunction. Time are merged by using mergeFunction
+        - If filterOutFunction is specified, remove sensors according this function
+        - Create the groups by using the groupFunction
+        - Create the meta-sensors by using metaFunction
+        - Create groups based on the categories of the sensor (for each sensor, add it in also the groups corresponding to the categories)
+        - Average the value of each time of the sensor
+        - Compute dewpoint :
+         - For each meta-sensors, if it is possible to compute the dewpoint :
+           - compute it and create a new sensor
+           - add this sensor to the current meta-sensor, and to all groups of the source °C and %RH sensor.
+        - Compute distribution :
+         - For each groups and each units
+          - if there is at least 2 physical sensors
+           - compute the aggregated sensors.
+          - if there is at least 2 dewpoint sensors
+           - compute the aggregated sensors.
+         - Create meta sensors for this sensors and it to them the source sensors and the computed sensor
+         - Add the computed sensors to the current groups
+        '''
+        self.__source = filename
         self.__sensors = {}
         self.__groups = {}
+        self.__starttime = None
+        self.__endtime = None
         sensorByPos = {}
-        dtlimit = sensors.fastparsedate('01.01.2017 00:00:00')
         try:
             s = 0
             f = open(filename, 'r', buffering=1024 * 1024)
             for n, l in enumerate(f, 1):
                 if n % 100000 == 0:
                     logger.info("Processing line:{}".format(n))
-                if s == 4 and l != '\n':
+                if s == 5 and l != '\n':
                     ls = l.rstrip('\n').split('\t')
                     dt_obj = sensors.fastparsedate(ls[0])
-                    if dtlimit > dt_obj:
+                    if self.__starttime > dt_obj:
                         continue
                     dt_obj = mergeFunction(dt_obj)
                     for p, v in filter(
@@ -123,10 +197,19 @@ class sensors:
                     s = 2
                     continue
                 if s == 2 and l.startswith('Start date'):
+                    dt = l.split(':')[1].strip()
+                    self.__starttime = datetime(
+                        int(dt[6:10]), int(dt[3:5]), int(dt[0:2]), 0, 0, 0, 0, timezone.utc)
                     s = 3
                     continue
-                if s == 3 and l.startswith('Time'):
+                if s == 3 and l.startswith('End date'):
+                    dt = l.split(':')[1].strip()
+                    self.__endtime = datetime(
+                        int(dt[6:10]), int(dt[3:5]), int(dt[0:2]), 23, 59, 59, 0, timezone.utc)
                     s = 4
+                    continue
+                if s == 4 and l.startswith('Time'):
+                    s = 5
                     continue
                 if s == 2 and l != '\n':
                     ls = l.rstrip('\n').split('\t')
@@ -231,7 +314,8 @@ class sensors:
         metasensorid = {n: p for p, n in enumerate(
             sorted(self.__metasensors.keys()), 1)}
 
-        maxmetaid = max(map(lambda this: len(str(this)), metasensorid.values()))
+        maxmetaid = max(map(lambda this: len(
+            str(this)), metasensorid.values()))
 
         def formatMetaSensorId(item):
             return '{} : {}'.format(str(item[1]).rjust(maxmetaid), item[0])
@@ -243,7 +327,7 @@ class sensors:
             return ', '.join(sorted([g[0] for g in self.__groups.items() if s in g[1]]))
 
         def metasForSensor(s):
-            return ', '.join(sorted([str(metasensorid[g[0]]) for g in self.__metasensors.items() if s.name in g[1].keys()]))
+            return ', '.join(map(str, sorted([metasensorid[g[0]] for g in self.__metasensors.items() if s.name in g[1].keys()])))
 
         def categoriesForSensor(s):
             return ', '.join(s.categories)
@@ -252,6 +336,10 @@ class sensors:
             this.name), self.__sensors.values())), 4)
         lenmaxunit = max(max(map(lambda this: len(
             this.unit), self.__sensors.values())), 4)
+        lenmaxperiod = max(max(map(lambda this: len(
+            this.period), self.__sensors.values())), 6)
+        lenmaxrange = max(max(map(lambda this: len(
+            this.range), self.__sensors.values())), 5)
         lenmaxval = max(max(map(lambda this: len(str(len(
             this))), self.__sensors.values())), 7)
         lenmaxclazz = max(max(map(lambda this: len(
@@ -263,25 +351,29 @@ class sensors:
         lenmetagroups = max(max(map(lambda this: len(
             metasForSensor(this)), self.__sensors.values())), 12)
 
-        titlestring = '| {} | {} | {} | {} | {} | {} | {} |'.format('Name'.ljust(
-            lenmaxname), 'Unit'.ljust(lenmaxunit), '#Values'.rjust(lenmaxval), 'Clazz'.ljust(lenmaxclazz), 'Categories'.ljust(lenmaxcategories), 'Group'.ljust(lenmaxgroups), 'Meta-sensors'.ljust(lenmetagroups))
-        fill = '|-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-|'.format('-' *
-                                                             lenmaxname, '-' * lenmaxunit, '-' * lenmaxval,  '-' * lenmaxclazz, '-' * lenmaxcategories, '-' * lenmaxgroups, '-' * lenmetagroups)
-        bfill = '+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+'.format('-' *
-                                                              lenmaxname, '-' * lenmaxunit, '-' * lenmaxval,  '-' * lenmaxclazz, '-' * lenmaxcategories, '-' * lenmaxgroups, '-' * lenmetagroups)
+        titlestring = '| {} | {} | {} | {} | {} | {} | {} | {} | {} |'.format('Name'.ljust(
+            lenmaxname), 'Unit'.ljust(lenmaxunit), 'Period'.ljust(lenmaxperiod), 'Range'.ljust(lenmaxrange), '#Values'.rjust(lenmaxval), 'Clazz'.ljust(lenmaxclazz), 'Categories'.ljust(lenmaxcategories), 'Group'.ljust(lenmaxgroups), 'Meta-sensors'.ljust(lenmetagroups))
+        fill = '|-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-|'.format('-' *
+                                                                       lenmaxname, '-' * lenmaxunit, '-' * lenmaxperiod, '-' * lenmaxrange, '-' * lenmaxval,  '-' * lenmaxclazz, '-' * lenmaxcategories, '-' * lenmaxgroups, '-' * lenmetagroups)
+        bfill = '+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+-{}-+'.format('-' *
+                                                                        lenmaxname, '-' * lenmaxunit, '-' * lenmaxperiod, '-' * lenmaxrange, '-' * lenmaxval,  '-' * lenmaxclazz, '-' * lenmaxcategories, '-' * lenmaxgroups, '-' * lenmetagroups)
 
         def formatSensor(s):
             grps = grpsForSensor(s)
             metas = metasForSensor(s)
             cats = categoriesForSensor(s)
-            return '| {} | {} | {} | {} | {} | {} | {} |'.format(s.name.ljust(
-                lenmaxname), s.unit.ljust(lenmaxunit), str(len(s)).rjust(lenmaxval), s.clazz.ljust(lenmaxclazz), cats.ljust(lenmaxcategories), grps.ljust(lenmaxgroups), metas.ljust(lenmetagroups))
+            return '| {} | {} | {} | {} | {} | {} | {} | {} | {} |'.format(s.name.ljust(
+                lenmaxname), s.unit.ljust(lenmaxunit), s.period.ljust(lenmaxperiod), s.range.ljust(lenmaxrange), str(len(s)).rjust(lenmaxval), s.clazz.ljust(lenmaxclazz), cats.ljust(lenmaxcategories), grps.ljust(lenmaxgroups), metas.ljust(lenmetagroups))
 
         sensors = '\n'.join(map(formatSensor, sorted(self.__sensors.values())))
         metaids = '\n'.join(
             map(formatMetaSensorId, sorted(metasensorid.items())))
 
-        return 'All Sensors:\n{}\n{}\n{}\n{}\n{}\n\nMeta-Sensors:\n{}\n{}'.format(bfill, titlestring, fill, sensors, bfill, '-' * max(maxmetaidname, 13), metaids)
+        general = 'Source file : {}\nStart time  : {}\nEnd time    : {}'.format(self.__source,
+                                                                                self.__starttime, self.__endtime)
+        maxgeneral = max(map(len, general.split('\n')))
+
+        return 'All Sensors:\n{}\n{}\n{}\n{}\n{}\n\nMeta-Sensors:\n{}\n{}\n\nGeneral informations:\n{}\n{}'.format(bfill, titlestring, fill, sensors, bfill, '-' * max(maxmetaidname, 13), metaids, '-' * maxgeneral, general)
 
     def sensorsByFunction(self, acceptFunction):
         return [value for value in self.__sensors.values() if acceptFunction(value)]

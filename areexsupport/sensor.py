@@ -12,6 +12,7 @@ import plotly.graph_objs as go
 import peakutils
 import numpy as np
 import logging
+import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -99,6 +100,22 @@ class sensor:
         Computed sensor use this property to set the way this was computed.
         '''
         return self.__clazz
+
+    @property
+    def range(self):
+        '''
+        range of value for this sensor.
+
+        '''
+        return '{:.1f} to {:.1f}'.format(min(self.__values.values()), max(self.__values.values()))
+
+    @property
+    def period(self):
+        '''
+        period of time for this sensor.
+
+        '''
+        return '{} to {}'.format(min(self.__values.keys()).strftime('%Y-%m-%d %H:%M:%S'), max(self.__values.keys()).strftime('%Y-%m-%d %H:%M:%S'))
 
     def __iter__(self):
         '''
