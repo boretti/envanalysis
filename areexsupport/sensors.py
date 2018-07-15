@@ -225,7 +225,7 @@ class sensors:
                 tsensor = self.sensorsByFunctionInGroup(
                     lambda this: this.unit == u and 'dewpoint' in this.categories, g)
                 computeOne(
-                    tsensor, '{} - {} [{}]'.format(g, dewpoint, u), ['dewpoint'])
+                    tsensor, '{} - {} [{}]'.format(g, dewpoint, u), ['computed', 'dewpoint'])
 
     def __repr__(self):
         def allsensors():
