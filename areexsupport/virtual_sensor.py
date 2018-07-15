@@ -25,7 +25,7 @@ class virtual_sensor(sensor):
 
     This class is an virtual sensor, with a name, a unit and datas.
 
-    The default values of this sensor are the mean of the received one. 
+    The default values of this sensor are the mean of the received one.
 
     Also contains a min, max, median and p-variance for each time point
     '''
@@ -45,7 +45,7 @@ class virtual_sensor(sensor):
                     tvalues[dt] = []
                 tvalues[dt].append(v)
 
-        mean = {d: statistics.mean(v) for d, v in tvalues.items(
+        mean = {d: np.mean(v, dtype=np.float64) for d, v in tvalues.items(
         )}
         sensor.__init__(self, name, sources[0].unit, 'N/A', mean, 'VIRTUAL')
 
@@ -55,7 +55,7 @@ class virtual_sensor(sensor):
         self.__maxValues = {d: max(v) for d, v in tvalues.items(
         )}
 
-        self.__medianValues = {d: statistics.median(v) for d, v in tvalues.items(
+        self.__medianValues = {d: np.median(v) for d, v in tvalues.items(
         )}
 
         self.__pvarianceValues = {d: statistics.pvariance(v, mean[d]) for d, v in tvalues.items(

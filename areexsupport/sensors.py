@@ -13,7 +13,7 @@ from areexsupport.computed_sensor import computed_sensor
 from areexsupport.virtual_sensor import virtual_sensor
 
 from datetime import datetime, timezone
-import statistics
+import numpy as np
 
 import logging
 
@@ -154,7 +154,7 @@ class sensors:
         for s in self.__sensors.values():
             logger.info(
                 "Post processing data : computing average for %s", s.name)
-            s.setValues({dt: statistics.mean(v)
+            s.setValues({dt: np.mean(v, dtype=np.float64)
                          for dt, v in sensorByPos[s.pos].items()})
         logger.info("Post processing data : computing point de rosee")
         self.__computePointRosee()

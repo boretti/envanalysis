@@ -154,17 +154,8 @@ def main(argv=None):
         plotters += GraphForDetail.generateFunctionToPlot(
             arg.output, data, logAndPlot, arg.prune)
 
-    def decorateForLog(fct):
-        def inner():
-            try:
-                logger.info('Start %s', fct)
-                fct()
-            finally:
-                logger.info('End %s', fct)
-        return inner
-
     with ThreadPoolExecutor(max_workers=arg.tc, thread_name_prefix='plotter') as e:
-        for p in map(decorateForLog, plotters):
+        for p in plotters:
             e.submit(p)
 
     logger.info('Processing ended')
