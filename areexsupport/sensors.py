@@ -92,7 +92,7 @@ class sensors:
         second = int(instr[17:19])
         return datetime(year, month, day, hour, minute, second, 0, timezone.utc)
 
-    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: {'def': {k: v for k, v in n.items()}}, filterOutFunction=None):
+    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: {'def': {k: v for k, v in n.items()}}, filterOutFunction=None, categoriesFunction=lambda n: None):
         self.__sensors = {}
         self.__groups = {}
         sensorByPos = {}
@@ -131,12 +131,14 @@ class sensors:
                 if s == 2 and l != '\n':
                     ls = l.rstrip('\n').split('\t')
                     n = ls[1]
-                    cs = sensor(n, ls[2], int(ls[0]))
+                    cs = sensor(n, ls[2], int(ls[0]),
+                                categories=categoriesFunction(n))
                     sensorByPos[int(ls[0])] = {}
                     self.__sensors[cs.name] = cs
 
         finally:
             f.close()
+
         if filterOutFunction != None:
             logger.info("Filter sensor by using %s", filterOutFunction)
             self.__sensors = {
@@ -149,6 +151,15 @@ class sensors:
             self.__groups[gname].append(s)
         logger.info("Create meta sensor by using %s", metaFunction)
         self.__metasensors = metaFunction(self.__sensors)
+        logger.info("Create groups from categories")
+        categories = []
+        for c in map(lambda v: v.categories, self.__sensors.values()):
+            categories += c
+        categories = set(categories)
+        for c in filter(lambda this: this not in self.__groups, categories):
+            self.__groups[c] = [f for f in filter(
+                lambda this: c in this.categories, self.__sensors.values())]
+
         logger.info(
             "Post processing data : computing average for %s", mergeFunction)
         for s in self.__sensors.values():
@@ -181,7 +192,7 @@ class sensors:
             pt = {d: t.values[d] - (100 - v) / 5 for d,
                   v in rh.values.items() if d in t.values}
             n = msn + ' - Point de rosée'
-            s = computed_sensor(n, pt, "°C")
+            s = computed_sensor(n, pt, "°C", ['pdr'])
             self.__sensors[n] = s
             self.__metasensors[msn][n] = s
             for g in gs:
@@ -190,19 +201,15 @@ class sensors:
     def __computeDistribution(self):
         groups = self.__groups.keys()
         units = set(map(lambda v: v.unit, self.__sensors.values()))
-        clazzs = set(map(lambda v: v.clazz, self.__sensors.values()))
         for g in groups:
             for u in units:
-                for c in clazzs:
-                    tsensor = self.sensorsByFunctionInGroup(
-                        lambda this: this.unit == u and this.clazz == c, g)
+                def computeOne(tsensor, mn, categories):
                     if len(tsensor) > 1:
                         logger.info(
-                            "Post processing data : compute distribution for  %s > %s > %s", g, u, c)
+                            "Post processing data : compute distribution for  %s > %s : %s", g, u, [t.name for t in tsensor])
                         if g not in self.__metasensors:
                             self.__metasensors[g] = {}
-                        mn = '{} - {} [{}]'.format(g, c, u)
-                        ds = virtual_sensor(mn, tsensor)
+                        ds = virtual_sensor(mn, tsensor, categories)
 
                         self.__metasensors[mn] = {s.name: s for s in tsensor}
                         for s in tsensor:
@@ -212,6 +219,16 @@ class sensors:
                         self.__sensors[mn] = ds
                         self.__metasensors[mn][mn] = ds
                         self.__metasensors[g][mn] = ds
+
+                tsensor = self.sensorsByFunctionInGroup(
+                    lambda this: this.unit == u and this.clazz == 'Sensor', g)
+                computeOne(tsensor, '{} [{}]'.format(g, u), [
+                    'distribution', 'from-sensor'])
+
+                tsensor = self.sensorsByFunctionInGroup(
+                    lambda this: this.unit == u and 'pdr' in this.categories, g)
+                computeOne(
+                    tsensor, '{} - Point de rosée [{}]'.format(g, u), ['distribution', 'from-pdr', 'pdr'])
 
     def __repr__(self):
         def allsensors():

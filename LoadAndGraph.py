@@ -85,6 +85,15 @@ def main(argv=None):
     def groupFunction(
         n): return 'Extérieur' if n == 'Extérieur' else 'Intérieur'
 
+    def categoriesFunction(n):
+        if n == 'Extérieur':
+            return None
+        if 'Atelier Sous-fenêtre' in n:
+            return ['Atelier']
+        if 'Atelier' in n:
+            return ['Atelier', 'Intérieur hors sous-fenêtre']
+        return ['Avant du garage', 'Intérieur hors sous-fenêtre']
+
     def filteroutFunction(n): return n.unit == 'V'
 
     def metaFunction(sensorsmap):
@@ -103,7 +112,7 @@ def main(argv=None):
         return meta
     logger.info('Reading from {}'.format(arg.input))
     data = sensors(arg.input, mergeFunction, groupFunction,
-                   metaFunction, filteroutFunction)
+                   metaFunction, filteroutFunction, categoriesFunction)
 
     logger.info('Datas are :\n{}'.format(data))
 

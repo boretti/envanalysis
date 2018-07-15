@@ -85,6 +85,13 @@ class sensor:
         return self.__pos
 
     @property
+    def categories(self):
+        '''
+        Categories of this sensor.
+        '''
+        return self.__categories
+
+    @property
     def clazz(self):
         '''
         Class of this sensor. This is Sensor by default.
@@ -111,7 +118,7 @@ class sensor:
         '''
         return len(self.__values)
 
-    def __init__(self, name, unit='V', pos=1, val=None, clazz='Sensor'):
+    def __init__(self, name, unit='V', pos=1, val=None, clazz='Sensor', categories=None):
         '''
         Initialize this sensor.
 
@@ -123,6 +130,7 @@ class sensor:
         - pos : This is the position of this sensor in the pseudo csv from areex.
         - val : Initial values for this sensor. By default none
         - clazz : This is the clazz of this sensor. By default a real sensor is Sensor.
+        - categories : This may be an array of category to marks this sensor
         '''
         self.__unit = unit
         self.__name = name
@@ -130,6 +138,7 @@ class sensor:
         self.__values = {} if val == None else val
         self.__blvalues = {} if val == None else sensor.__toBaseLine(val)
         self.__clazz = clazz
+        self.__categories = [] if categories == None else categories
 
         logger.debug('A new sensor has been created - %s', self)
 
@@ -189,7 +198,7 @@ class sensor:
         self.__blvalues = sensor.__toBaseLine(values)
 
     def __repr__(self):
-        return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tclazz:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__clazz)
+        return '{}:\tunit:{}\tposition:{}\tvalues count:{}\tclazz:{}\tcategories:{}'.format(self.__name, self.__unit, self.__pos, len(self.__values), self.__clazz, self.__categories)
 
     @staticmethod
     def __asScatterFull(values, name, yaxis='y'):

@@ -21,15 +21,15 @@ def generateFunctionToPlot(bsefolder, data, functionToPlot, prune):
             os.mkdir(folder)
 
         plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures.html'), data.toFigure(
-            lambda s: s.name in clst and s.clazz == 'Sensor', '°C', cname, '%RH', lambda s: 'y' if s.unit == '�C' else 'y2', prune=prune)))
+            lambda s: s.name in clst and s.clazz == 'Sensor', '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=prune)))
 
         plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures et calculés.html'), data.toFigure(
-            lambda s: s.name in clst and s.clazz in ('Sensor', 'COMPUTED'), '�C', cname, '%RH', lambda s: 'y' if s.unit == '�C' else 'y2', prune=prune)))
+            lambda s: s.name in clst and s.clazz in ('Sensor', 'COMPUTED'), '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=prune)))
 
         plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures - baselines.html'), data.toFigure(
-            lambda s: s.name in clst and s.clazz == 'Sensor', '°C', cname, '%RH', lambda s: 'y' if s.unit == '�C' else 'y2', prune=prune, baseline=True)))
+            lambda s: s.name in clst and s.clazz == 'Sensor', '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=prune, baseline=True)))
 
         plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures et calculés - baselines.html'), data.toFigure(
-            lambda s: s.name in clst and s.clazz in ('Sensor', 'COMPUTED'), '�C', cname, '%RH', lambda s: 'y' if s.unit == '�C' else 'y2', prune=prune, baseline=True)))
+            lambda s: s.name in clst and s.clazz in ('Sensor', 'COMPUTED'), '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=prune, baseline=True)))
 
     return plotters

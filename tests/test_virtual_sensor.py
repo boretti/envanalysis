@@ -28,6 +28,7 @@ def testSensorInitOnlyMandataParameter():
     assert len(s.values) == 3
     assert s.values == {d1: 2, d2: 4, d3: 8}
     assert s.clazz == 'VIRTUAL'
+    assert s.categories == ['virtual']
 
 
 def testAsScatterWithError():

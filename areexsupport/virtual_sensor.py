@@ -30,13 +30,16 @@ class virtual_sensor(sensor):
     Also contains a min, max, median and p-variance for each time point
     '''
 
-    def __init__(self, name, sources):
+    def __init__(self, name, sources, categories=None):
         '''
-            Initialize this sensor.
+        Initialize this sensor.
 
-            Mandatory parameters :
-            - name : This is the name of this sensor and it should be unique.
-            - source : the sources sensors
+        Mandatory parameters :
+        - name : This is the name of this sensor and it should be unique.
+        - source : the sources sensors
+
+        Optional parameters :
+        - categories : This may be an array of category to marks this sensor
         '''
         tvalues = {}
         for sn in sources:
@@ -47,7 +50,8 @@ class virtual_sensor(sensor):
 
         mean = {d: np.mean(v, dtype=np.float64) for d, v in tvalues.items(
         )}
-        sensor.__init__(self, name, sources[0].unit, 'N/A', mean, 'VIRTUAL')
+        sensor.__init__(self, name, sources[0].unit, 'N/A', mean, 'VIRTUAL', [
+                        'virtual'] if categories == None else ['virtual'] + categories)
 
         self.__minValues = {d: min(v) for d, v in tvalues.items(
         )}

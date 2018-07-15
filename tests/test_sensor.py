@@ -17,17 +17,19 @@ def testSensorInitOnlyMandataParameter():
     assert s.pos == 1
     assert len(s.values) == 0
     assert s.clazz == 'Sensor'
+    assert s.categories == []
 
 
 def testSensorInitExplicit():
     d1 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
-    s = sensor('name', 'RH%', 2, {d1: 1}, 'c')
+    s = sensor('name', 'RH%', 2, {d1: 1}, 'c', ['a'])
     assert s.name == 'name'
     assert s.unit == 'RH%'
     assert s.pos == 2
     assert s.values == {d1: 1}
     assert s.clazz == 'c'
+    assert s.categories == ['a']
 
 
 def testSensorDateTimeToMinute():
@@ -54,9 +56,9 @@ def testSetValues():
 
 def testStr():
     s = sensor('name', 'RH%', 2, {timezone('Europe/Zurich').localize(
-        datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S')): 1}, 'c')
+        datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S')): 1}, 'c', ['x'])
     assert str(
-        s) == "name:\tunit:RH%\tposition:2\tvalues count:1\tclazz:c"
+        s) == "name:\tunit:RH%\tposition:2\tvalues count:1\tclazz:c\tcategories:['x']"
 
 
 def testSensorDateTimeTo5Minute():
