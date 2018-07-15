@@ -131,18 +131,18 @@ def main(argv=None):
             return lambda v: v.clazz == clazz and v.unit == unit
 
         plotters.append(lambda: logAndPlot(os.path.join(arg.output, 'Toutes les températures.html'), data.toFigure(
-            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures'), prune=arg.prune))
+            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures', prune=arg.prune)))
 
         plotters.append(lambda: logAndPlot(os.path.join(arg.output, 'Toutes les humidités.html'), data.toFigure(
-            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités'), prune=arg.prune))
+            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités', prune=arg.prune)))
 
         plotters.append(lambda: logAndPlot(os.path.join(
             arg.output, 'Toutes les températures - Baseline.html'), data.toFigure(
-            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures - Baseline'), prune=arg.prune, baseline=True))
+            sensorIsUnitAndClazz('°C', 'Sensor'), '°C', 'Toutes les températures - Baseline', prune=arg.prune, baseline=True)))
 
         plotters.append(lambda: logAndPlot(os.path.join(
             arg.output, 'Toutes les humidité - Baselines.html'), data.toFigure(
-            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités - Baseline'), prune=arg.prune, baseline=True))
+            sensorIsUnitAndClazz('RH%', 'Sensor'), '°C', 'Toutes les humidités - Baseline', prune=arg.prune, baseline=True)))
 
     if arg.verbose or arg.extvsint:
         # Interieur vs exterieur
@@ -171,13 +171,14 @@ def main(argv=None):
         plotters.append(extvsint)
 
     if arg.verbose or arg.meta:
-        # Generate one file per meta sensor with/without baseline - working meta
+        # Generate one file per meta sensor with/without baseline - working
+        # meta
 
         def plotIfExist(output, figure):
             if len(figure['data']) > 0:
                 logAndPlot(output, figure)
 
-        for name, lst in filter(lambda x:' [' not in x[0],data.metassensors):
+        for name, lst in filter(lambda x: ' [' not in x[0], data.metassensors):
             folder = os.path.join(arg.output, name.translate(
                 str.maketrans('/:\\', '---')))
             if not os.path.isdir(folder):
@@ -188,7 +189,7 @@ def main(argv=None):
 
             plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures et calculés.html'), data.toFigure(
                 lambda s: s.name in clst and s.clazz in ('Sensor', 'COMPUTED'), '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=arg.prune)))
-            
+
             plotters.append(lambda cname=name, clst=lst, cfolder=folder: plotIfExist(os.path.join(cfolder, 'mesures - baselines.html'), data.toFigure(
                 lambda s: s.name in clst and s.clazz == 'Sensor', '°C', cname, '%RH', lambda s: 'y' if s.unit == '°C' else 'y2', prune=arg.prune, baseline=True)))
 
