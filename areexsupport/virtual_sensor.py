@@ -76,9 +76,9 @@ class virtual_sensor(sensor):
             maxyt.append(maxv[d] - v)
         return go.Scattergl(x=xt, y=np.asarray(yt), name=name, error_y=dict(type='data', symmetric=False, array=np.asarray(maxyt), arrayminus=np.asarray(minyt)), yaxis=yaxis)
 
-    def asScatter(self, name=None, yaxis='y', prune=False, baseline=False, withError=False):
+    def asScatterWithError(self, name=None, yaxis='y', prune=False):
         '''
-        Generate a scatter (from plotly) for this sensor.
+        Generate a scatter (from plotly) for this sensor, with eror (means vs min and max).
 
         This return a Scattergl instance for this sensor. X are the datetime entries and Y are the measures.
 
@@ -86,10 +86,6 @@ class virtual_sensor(sensor):
         - name : to override the name of the scatter (by default this is the name of the sensor)
         - yaxis : to override the default y axis
         - prune : if set to True, this will prune the generated scatter (not applicable for min/max variante), by removing successive identical y values
-        - baseline : if set to True, this will use the baseline
-        - withError : if set to True, ignore baseline and generate a graph with x/y error
 
         '''
-        if withError:
-            return virtual_sensor.__asScatterError(self.values, self.name if name == None else name, self.__minValues, self.__maxValues, yaxis)
-        return sensor.asScatter(self, name, yaxis, prune, baseline)
+        return virtual_sensor.__asScatterError(self.values, self.name if name == None else name, self.__minValues, self.__maxValues, yaxis)

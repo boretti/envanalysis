@@ -164,7 +164,8 @@ def main(argv=None):
         return inner
 
     with ThreadPoolExecutor(max_workers=arg.tc, thread_name_prefix='plotter') as e:
-        [e.submit(p) for p in map(decorateForLog, plotters)]
+        for p in map(decorateForLog, plotters):
+            e.submit(p)
 
     logger.info('Processing ended')
 

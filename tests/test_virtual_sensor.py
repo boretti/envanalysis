@@ -30,7 +30,7 @@ def testSensorInitOnlyMandataParameter():
     assert s.clazz == 'VIRTUAL'
 
 
-def testAsScatterError():
+def testAsScatterWithError():
     d1 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
     d2 = timezone(
@@ -41,7 +41,7 @@ def testAsScatterError():
     s2 = sensor('name', val={d1: 2, d2: 4, d3: 9})
     s3 = sensor('name', val={d1: 3, d2: 6, d3: 12})
     s = virtual_sensor('name', [s1, s2, s3])
-    sc2 = s.asScatter(withError=True)
+    sc2 = s.asScatterWithError()
     assert list(sc2.x) == [d1, d2, d3]
     assert list(sc2.y) == [2, 4, 8]
     assert list(sc2.error_y.array) == [

@@ -16,10 +16,10 @@ def generateFunctionToPlot(bsefolder, data, functionToPlot, prune):
     ffolder = os.path.join(bfolder, 'Analyse sous-fenetre')
     if not os.path.isdir(ffolder):
         os.mkdir(ffolder)
-    
+
     external = data['Extérieur'].asScatter(prune=prune)
-    internalt = data['Intérieur - Sensor [°C]'].asScatter(
-        name='Température intérieur', withError=True)
+    internalt = data['Intérieur - Sensor [°C]'].asScatterWithError(
+        name='Température intérieur')
     external_b = data['Extérieur'].asScatter(
         prune=prune, baseline=True)
     internalt_b = data['Intérieur - Sensor [°C]'].asScatter(
