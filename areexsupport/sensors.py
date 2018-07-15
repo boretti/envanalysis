@@ -231,10 +231,10 @@ class sensors:
         metasensorid = {n: p for p, n in enumerate(
             sorted(self.__metasensors.keys()), 1)}
 
-        maxmetaid = max(map(lambda this: len(str(this)), metasensorid.keys()))
+        maxmetaid = max(map(lambda this: len(str(this)), metasensorid.values()))
 
         def formatMetaSensorId(item):
-            return '{} : {}'.format(str(item[0]).ljust(maxmetaid), item[1])
+            return '{} : {}'.format(str(item[1]).rjust(maxmetaid), item[0])
 
         maxmetaidname = max(map(lambda this: len(
             formatMetaSensorId(this)), metasensorid.items()))
