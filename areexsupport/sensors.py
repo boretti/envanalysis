@@ -228,16 +228,34 @@ class sensors:
                     tsensor, '{} - {} [{}]'.format(g, dewpoint, u), ['computed', 'dewpoint'])
 
     def __repr__(self):
-        def allsensors():
-            return '\n\t'.join(map(sensor.__repr__, sorted(self.__sensors.values())))
+        lenmaxname = max(map(lambda this: len(
+            this.name), self.__sensors.values()))
+        lenmaxclazz = max(map(lambda this: len(
+            this.clazz), self.__sensors.values()))
+        lenmaxcategories = max(map(lambda this: len(
+            str(this.categories)), self.__sensors.values()))
 
-        def allgroups():
-            return '\n\t'.join(map(lambda g: '{}\n\t\t{}'.format(g, '\n\t\t'.join(map(sensor.__repr__, self.__groups[g]))), sorted(self.__groups.keys())))
+        titlestring = '{} | {} | {} | {} | {} | {}'.format('Name'.ljust(
+            lenmaxname + 4), 'Unit'.ljust(10), 'Position'.ljust(10), 'Values count'.ljust(20), 'Clazz'.ljust(lenmaxclazz + 4), 'Categories'.ljust(lenmaxcategories + 10))
 
-        def allmetas():
-            return '\n\t'.join(map(lambda m: '{}\n\t\t{}'.format(m, '\n\t\t'.join(map(sensor.__repr__, self.__metasensors[m].values()))), sorted(self.__metasensors.keys())))
+        def formatSensor(s):
+            return '{} | {} | {} | {} | {} | {}'.format(s.name.ljust(
+                lenmaxname + 4), s.unit.ljust(10), str(s.pos).ljust(10), str(len(s)).ljust(20), s.clazz.ljust(lenmaxclazz + 4), str(s.categories).ljust(lenmaxcategories + 10))
 
-        return 'All Sensors :\n\t{}\nGroups:\n\t{}\nMeta Sensors:\n\t{}'.format(allsensors(), allgroups(), allmetas())
+        def formatGroup(g):
+            return '{} : {}'.format(g[0], '; '.join(map(lambda this: this.name, sorted(g[1]))))
+
+        def formatMeta(m):
+            return '{} : {}'.format(m[0], '; '.join(m[1]))
+
+        sensors = '\n'.join(map(formatSensor, sorted(self.__sensors.values())))
+
+        groups = '\n\t'.join(map(formatGroup, sorted(self.__groups.items())))
+
+        metas = '\n\t'.join(
+            map(formatMeta, sorted(self.__metasensors.items())))
+
+        return 'All Sensors:\n{}\n{}\n{}\n\nGroups\n\t{}\n\nMeta-Sensors\n\n\t{}'.format(titlestring, '-' * len(titlestring), sensors, groups, metas)
 
     def sensorsByFunction(self, acceptFunction):
         return [value for value in self.__sensors.values() if acceptFunction(value)]
