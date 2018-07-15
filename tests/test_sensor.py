@@ -170,6 +170,21 @@ def testPeriod():
     assert s.period == '2017-01-01 00:00:00 to 2017-01-01 00:01:01'
 
 
+def testPeak():
+    d1 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
+    d2 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:01', '%d.%m.%Y %H:%M:%S'))
+    d3 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
+    d4 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:01:01', '%d.%m.%Y %H:%M:%S'))
+    d5 = timezone(
+        'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:02:01', '%d.%m.%Y %H:%M:%S'))
+    s = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1, d4: 4.1, d5: -10})
+    assert s.peaks == {d4: 4.1}
+
+
 def testAsScatterNoPrune():
     d1 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:00', '%d.%m.%Y %H:%M:%S'))
@@ -178,8 +193,6 @@ def testAsScatterNoPrune():
     d3 = timezone(
         'Europe/Zurich').localize(datetime.strptime('01.01.2017 00:00:02', '%d.%m.%Y %H:%M:%S'))
     s1 = sensor('name', val={d1: 1.0, d2: 2.1, d3: 3.1})
-    s2 = sensor('name', val={d1: 0.5, d2: 1, d3: 3.1})
-    s3 = sensor('name', val={d1: 6, d2: 8, d3: 5})
     sc1 = s1.asScatter()
     assert list(sc1.x) == [d1, d2, d3]
     assert list(sc1.y) == [1.0, 2.1, 3.1]

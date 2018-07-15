@@ -12,7 +12,6 @@ import plotly.graph_objs as go
 import peakutils
 import numpy as np
 import logging
-import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -116,6 +115,28 @@ class sensor:
 
         '''
         return '{} to {}'.format(min(self.__values.keys()).strftime('%Y-%m-%d %H:%M:%S'), max(self.__values.keys()).strftime('%Y-%m-%d %H:%M:%S'))
+
+    @property
+    def peaks(self):
+        '''
+        peaks of the measures ; computed on the fly
+        '''
+        xt = []
+        yt = []
+        yt2 = []
+        for d, v in sorted(self.__values.items()):
+            xt.append(d)
+            yt.append(v)
+            yt2.append(-v)
+        indexm1 = peakutils.indexes(
+            np.asarray(yt), thres=0.5, min_dist=30)
+        indexm2 = peakutils.indexes(np.asarray(yt2), thres=0.5, min_dist=30)
+        result = {}
+        for i in indexm1:
+            result[xt[i]] = yt[i]
+        for i in indexm2:
+            result[xt[i]] = yt[i]
+        return result
 
     def __iter__(self):
         '''

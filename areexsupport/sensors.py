@@ -16,7 +16,6 @@ from datetime import datetime, timezone
 import numpy as np
 
 import logging
-from builtins import property
 
 logger = logging.getLogger(__name__)
 
@@ -76,18 +75,30 @@ class sensors:
 
     @property
     def groups(self):
+        '''
+        Names of the groups of this set of sensors
+        '''
         return self.__groups.keys()
 
     @property
     def starttime(self):
+        '''
+        The date and time of the start of the period of this object.
+        '''
         return self.__starttime
 
     @property
     def endtime(self):
+        '''
+        The date and time of the end of the period of this object.
+        '''
         return self.__endtime
 
     @property
     def source(self):
+        '''
+        The source file for this object.
+        '''
         return self.__source
 
     @staticmethod
