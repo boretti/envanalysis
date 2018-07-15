@@ -1,9 +1,9 @@
 
 # encoding: utf-8
 '''
-Support of a sensor that has been calculated (like point de rosee).
+Support of a sensor that is virtual (not a physical sensor).
 
-This module exposes the computed_sensor class.
+This module exposes the virtual_sensor class.
 
 This module only exposes one single class : virtual_sensor ; Just use `from areexsupport.virtual_sensor import virtual_sensor` to use it
 '''
@@ -18,9 +18,9 @@ __all__ = ["virtual_sensor"]
 
 class virtual_sensor(sensor):
     '''
-    Class defining a computed sensor.
+    Class defining a virtual sensor.
 
-    This class is an computed sensor, with a name, a unit and datas.
+    This class is an virtual sensor, with a name, a unit and datas.
     '''
 
     def __init__(self, name, val, unit='V', categories=None):
@@ -35,7 +35,7 @@ class virtual_sensor(sensor):
         - unit : This is the unit of this sensor (by default V), others classical value are °C and RH%.
         - categories : This may be an array of category to marks this sensor
         '''
-        sensor.__init__(self, name, unit, 'N/A', val, 'COMPUTED',
-                        ['computed'] if categories == None else ['computed'] + categories)
+        sensor.__init__(self, name, unit, 'N/A', val, 'VIRTUAL',
+                        ['virtual'] if categories == None else ['virtual'] + categories)
 
-        logger.debug('A new computed sensor has been created - %s', self)
+        logger.debug('A new virtual sensor has been created - %s', self)

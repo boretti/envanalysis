@@ -1,7 +1,7 @@
 
 # encoding: utf-8
 '''
-Support of a sensor which is virtual, meaning it aggregate value from several sensors.
+Support of a sensor which is aggregated, meaning it aggregate value from several sensors.
 
 This module exposes the aggregated_sensor class.
 
@@ -9,7 +9,7 @@ This module only exposes one single class : virtual_sensor ; Just use `from aree
 '''
 
 import logging
-from areexsupport.sensor import sensor
+from areexsupport.virtual_sensor import virtual_sensor
 import statistics
 import plotly.graph_objs as go
 import numpy as np
@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 __all__ = ["aggregated_sensor"]
 
 
-class aggregated_sensor(sensor):
+class aggregated_sensor(virtual_sensor):
     '''
-    Class defining a virtual sensor, meaning it aggregate value from several sensors.
+    Class defining a aggregated sensor, meaning it aggregate value from several sensors.
 
-    This class is an virtual sensor, with a name, a unit and datas.
+    This class is an aggregated sensor, with a name, a unit and datas.
 
     The default values of this sensor are the mean of the received one.
 
@@ -50,8 +50,8 @@ class aggregated_sensor(sensor):
 
         mean = {d: np.mean(v, dtype=np.float64) for d, v in tvalues.items(
         )}
-        sensor.__init__(self, name, sources[0].unit, 'N/A', mean, 'VIRTUAL', [
-                        'virtual'] if categories == None else ['virtual'] + categories)
+        virtual_sensor.__init__(self, name, mean, sources[0].unit, [
+            'aggregated'] if categories == None else ['aggregated'] + categories)
 
         self.__minValues = {d: min(v) for d, v in tvalues.items(
         )}
@@ -65,7 +65,7 @@ class aggregated_sensor(sensor):
         self.__pvarianceValues = {d: statistics.pvariance(v, mean[d]) for d, v in tvalues.items(
         )}
 
-        logger.debug('A new virtual sensor has been created - %s', self)
+        logger.debug('A new aggregated sensor has been created - %s', self)
 
     @staticmethod
     def __asScatterError(values, name, minv, maxv, yaxis='y'):
@@ -80,7 +80,7 @@ class aggregated_sensor(sensor):
             maxyt.append(maxv[d] - v)
         return go.Scattergl(x=xt, y=np.asarray(yt), name=name, error_y=dict(type='data', symmetric=False, array=np.asarray(maxyt), arrayminus=np.asarray(minyt)), yaxis=yaxis)
 
-    def asScatterWithError(self, name=None, yaxis='y', prune=False):
+    def asScatterWithError(self, name=None, yaxis='y'):
         '''
         Generate a scatter (from plotly) for this sensor, with eror (means vs min and max).
 

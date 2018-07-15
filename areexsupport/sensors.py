@@ -9,7 +9,7 @@ This module only exposes one single class : sensors ; Just use `from areexsuppor
 '''
 
 from areexsupport.sensor import sensor
-from areexsupport.virtual_sensor import virtual_sensor
+from areexsupport.dewpoint_sensor import dewpoint_sensor
 from areexsupport.aggregated_sensor import aggregated_sensor
 
 from datetime import datetime, timezone
@@ -92,7 +92,7 @@ class sensors:
         second = int(instr[17:19])
         return datetime(year, month, day, hour, minute, second, 0, timezone.utc)
 
-    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: {'def': {k: v for k, v in n.items()}}, filterOutFunction=None, categoriesFunction=lambda n: None):
+    def __init__(self, filename, mergeFunction=sensor.dateTimeToMinute(), groupFunction=lambda n: 'default', metaFunction=lambda n: {'def': {k: v for k, v in n.items()}}, filterOutFunction=None, categoriesFunction=lambda n: None, dewpoint='Point de rosée'):
         self.__sensors = {}
         self.__groups = {}
         sensorByPos = {}
@@ -167,12 +167,12 @@ class sensors:
                 "Post processing data : computing average for %s", s.name)
             s.setValues({dt: np.mean(v, dtype=np.float64)
                          for dt, v in sensorByPos[s.pos].items()})
-        logger.info("Post processing data : computing point de rosee")
-        self.__computePointRosee()
+        logger.info("Post processing data : computing dewpoint")
+        self.__computePointRosee(dewpoint)
         logger.info("Post processing data : computing distribution")
-        self.__computeDistribution()
+        self.__computeDistribution(dewpoint)
 
-    def __computePointRosee(self):
+    def __computePointRosee(self, dewpoint):
         for msn, ms in list(self.__metasensors.items()):
             if len(ms) < 2:
                 continue
@@ -185,20 +185,18 @@ class sensors:
             if len(rhl) != 1:
                 continue
             logger.info(
-                "Post processing data : computing point de rosee for %s", msn)
+                "Post processing data : computing dewpoint for %s", msn)
             t = tl[0]
             rh = rhl[0]
             gs = [g for g, v in self.__groups.items() if t in v or rh in v]
-            pt = {d: t.values[d] - (100 - v) / 5 for d,
-                  v in rh.values.items() if d in t.values}
-            n = msn + ' - Point de rosée'
-            s = virtual_sensor(n, pt, "°C", ['pdr'])
+            n = msn + ' - ' + dewpoint
+            s = dewpoint_sensor(n, t, rh)
             self.__sensors[n] = s
             self.__metasensors[msn][n] = s
             for g in gs:
                 self.__groups[g].append(s)
 
-    def __computeDistribution(self):
+    def __computeDistribution(self, dewpoint):
         groups = self.__groups.keys()
         units = set(map(lambda v: v.unit, self.__sensors.values()))
         for g in groups:
@@ -222,13 +220,12 @@ class sensors:
 
                 tsensor = self.sensorsByFunctionInGroup(
                     lambda this: this.unit == u and this.clazz == 'Sensor', g)
-                computeOne(tsensor, '{} [{}]'.format(g, u), [
-                    'distribution', 'from-sensor'])
+                computeOne(tsensor, '{} [{}]'.format(g, u), None)
 
                 tsensor = self.sensorsByFunctionInGroup(
-                    lambda this: this.unit == u and 'pdr' in this.categories, g)
+                    lambda this: this.unit == u and 'dewpoint' in this.categories, g)
                 computeOne(
-                    tsensor, '{} - Point de rosée [{}]'.format(g, u), ['distribution', 'from-pdr', 'pdr'])
+                    tsensor, '{} - {} [{}]'.format(g, dewpoint, u), ['dewpoint'])
 
     def __repr__(self):
         def allsensors():
